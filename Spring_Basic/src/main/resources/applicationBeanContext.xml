@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="
+        http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+
+    <!-- Simple Bean -->
+    <bean id="myBean" class="car.example.bean.MyBean">
+        <property name="message" value="Value set from xml" />
+    </bean>
+    <!-- Simple Bean -->
+
+    <!--    Constructor Injection-->
+    <bean id="toyatoSpecification" class="car.injection.constructor.Specification">
+        <property name="brand" value="Toyato by Constructor" />
+        <property name="model" value="Glanza by Constructor" />
+    </bean>
+
+    <bean id="toyatoCar" class="car.injection.constructor.Car" >
+        <constructor-arg ref="toyatoSpecification" />
+    </bean>
+    <!--    Constructor Injection-->
+
+
+    <!--    Setter Injection-->
+    <bean id="mahindraSpecification" class="car.injection.setter.Specification">
+        <property name="brand" value="Mahindra by Setter" />
+        <property name="model" value="Thar by Setter" />
+    </bean>
+
+    <bean id="mahindraCar" class="car.injection.setter.Car" >
+        <property name="specification" ref="mahindraSpecification" />
+    </bean>
+    <!--    Setter Injection-->
+
+</beans>
