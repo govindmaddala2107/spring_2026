@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="
+        http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+
+    <!--    Autowire Injection by Type-->
+    <bean id="specification" class="car.autowire.byType.Specification">
+        <property name="brand" value="CarBrand | byType | specification"/>
+        <property name="model" value="CarModel | byType | specification"/>
+    </bean>
+
+<!--    <bean id="specification1" class="car.autowire.byType.Specification">-->
+<!--        <property name="brand" value="CarBrand | byType | specification1"/>-->
+<!--        <property name="model" value="CarModel | byType | specification1"/>-->
+<!--    </bean>-->
+    <bean id="myCar" class="car.autowire.byType.Car" autowire="byType"/>
+    <!--    Autowire Injection by Type-->
+</beans>

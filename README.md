@@ -278,6 +278,195 @@
      <property name="specification" ref="mahindraSpecification" />
     ```
 
+### Autowiring:
+- We want to autowire Specification class into Car class and it can be done by many ways. Both Car and Specification are same for all. Only difference is in configuration in XML files. Autowiring can be done by: byName || byType || constructor
+- For byName and byType, dependency is injected by **setter** type and for constructor type, it is by constructor. Car and Specification classes are same for both byName and byType and are as follows:
+    - Car.java
+    ```java
+    package car.autowire.byName;
+
+    public class Car {
+
+        private Specification specification;
+
+        public Specification getSpecification() {
+            return specification;
+        }
+
+        public void setSpecification(Specification specification) {
+            this.specification = specification;
+        }
+
+        public void getDetails(){
+            System.out.println(specification.toString());
+        }
+    }
+    ```
+    - Specification.java
+    ```java
+    package car.autowire.byName;
+
+    public class Specification {
+        private String brand;
+        private String model;
+
+        public void setBrand(String brand) {
+            this.brand = brand;
+        }
+
+        public void setModel(String model) {
+            this.model = model;
+        }
+
+        @Override
+        public String toString() {
+            return "Specification{" +
+                    "brand='" + brand + '\'' +
+                    ", model='" + model + '\'' +
+                    '}';
+        }
+    }
+    ```
+    
+#### ByName:
+- autowiringByName.xml
+    ```xml
+    <!--    Autowire Injection by Name-->
+    <bean id="specification" class="car.autowire.byName.Specification">
+        <property name="brand" value="Car brand by autoname by name" />
+        <property name="model" value="Car model by autoname by name" />
+    </bean>
+
+    <bean id="autoWireByNameCar" class="car.autowire.byName.Car" autowire="byName" />
+    <!--    Autowire Injection by Name-->
+    ```
+- Here **autowire="byName"** looks for any other classes there in Car class and here it is 
+    ```java
+    private Specification specification;
+    ``` 
+    and checks for bean named as like there in class and here it is **specification**.
+- App.java
+    ```java
+    package car.autowire.byName;
+
+    import org.springframework.context.ApplicationContext;
+    import org.springframework.context.support.ClassPathXmlApplicationContext;
+
+    public class App {
+        public static void main(String[] args) {
+            ApplicationContext context = new ClassPathXmlApplicationContext("autowiringByName.xml");
+            Car autoWireByNameCar = (Car) context.getBean("autoWireByNameCar");
+            autoWireByNameCar.getDetails();
+            /*
+            
+            Specification{brand='Car brand by autoname by name', model='Car model by autoname by name'}
+
+            */
+        }
+    }
+    ```
+- Important Steps:
+    - Autowiring is done by Name but key point to note here is that bean is injected into Car class here by **setter**.
+    - If there is another bean named **specification1**, so as to get that injected, Car code should refer **specification1** instead of **specification**.
+        ```java
+        private Specification specification1;
+        // and its corresponding getter and setter.
+        ```
+
+#### ByType:
+- autowiringByType.xml
+    ```xml
+    <!--    Autowire Injection by Type-->
+    <bean id="specification" class="car.autowire.byType.Specification">
+        <property name="brand" value="CarBrand | byType | specification"/>
+        <property name="model" value="CarModel | byType | specification"/>
+    </bean>
+
+    <bean id="specification1" class="car.autowire.byType.Specification">
+        <property name="brand" value="CarBrand | byType | specification1"/>
+        <property name="model" value="CarModel | byType | specification1"/>
+    </bean>
+    <bean id="myCar" class="car.autowire.byType.Car" autowire="byType"/>
+    <!--    Autowire Injection by Type-->
+    ```
+    - Here 
+        - Car bean: myCar
+        - Specification beans are:
+            - specification
+            - specification1
+    - In myCar bean, **autowire="byType"** checks for **private Specification specification** i.e for beans of type Specification class but here we have 2 beans namely **specification** and **specification1** and if we try to inject Specification bean, it will get confuse between which bean to get injected and throws an error
+        ```
+        Caused by: org.springframework.beans.factory.NoUniqueBeanDefinitionException: No qualifying bean of type 'car.autowire.byType.Specification' available: expected single matching bean but found 2: specification,specification1
+        ```
+    - For now comment out any specification and run it.
+- App.java
+    ```java
+    package car.autowire.byType;
+
+    import org.springframework.context.ApplicationContext;
+    import org.springframework.context.support.ClassPathXmlApplicationContext;
+
+    public class App {
+        public static void main(String[] args) {
+            ApplicationContext context = new ClassPathXmlApplicationContext("autowiringByType.xml");
+            Car autoWireByNameCar = (Car) context.getBean("myCar");
+            autoWireByNameCar.getDetails();
+            
+            // Specification{brand='CarBrand | byType | specification', model='CarModel | byType | specification'}
+        }
+    }
+    ```
+- Important Steps:
+    - Autowiring is done by Type but key point to note here is that bean is injected into Car class here by **setter**.
+
+#### ByConstructor:
+- Here dependency is injected by constructor and Specification.java remains same but Car.java is as follows:
+    ```java
+    package car.autowire.byConstructor;
+
+    public class Car {
+
+        private final Specification specification;
+
+        public Car(Specification specification) {
+            this.specification = specification;
+        }
+
+        public void getDetails(){
+            System.out.println(specification.toString());
+        }
+    }
+    ```
+- autoWiringByConstructor.xml
+    ```xml
+    
+    <!--    Autowire Injection by constructor-->
+    <bean id="specification1" class="car.autowire.byConstructor.Specification">
+        <property name="brand" value="CarBrand | byConstructor | specification"/>
+        <property name="model" value="CarModel | byConstructor | specification"/>
+    </bean>
+    <bean id="myCar" class="car.autowire.byConstructor.Car" autowire="constructor"/>
+    <!--    Autowire Injection by constructor-->
+    ```
+    - **autowire="constructor"** looks for constructor and looks for bean of that class no matter what name of that it is.
+- App.java
+    ```java
+    package car.autowire.byConstructor;
+
+    import org.springframework.context.ApplicationContext;
+    import org.springframework.context.support.ClassPathXmlApplicationContext;
+
+    public class App {
+        public static void main(String[] args) {
+            ApplicationContext context = new ClassPathXmlApplicationContext("autowiringByConstructor.xml");
+            Car autoWireByNameCar = (Car) context.getBean("myCar");
+            autoWireByNameCar.getDetails();
+
+            // Specification{brand='CarBrand | byConstructor | specification', model='CarModel | byConstructor | specification'}
+        }
+    }
+    ```
+
 
 
 
