@@ -467,6 +467,168 @@
     }
     ```
 
+### By Annotation
+#### @Component, @ComponentScan, @Autowired, @Value, @Qualifier
+##### XML Based:
+- Here we don't create any beans by we configure a package and in that when there is any class has annotation **@Component** on top of that class, bean will be created automatically. 
+    - If class is Car, bean will be car
+    - If class is Employee, bean is employee
+- Specification.java
+    ```java
+    package car.annotations;
+
+    import org.springframework.stereotype.Component;
+
+    @Component
+    public class Specification {
+        private String brand;
+        private String model;
+
+        public void setBrand(String brand) {
+            this.brand = brand;
+        }
+
+        public void setModel(String model) {
+            this.model = model;
+        }
+
+        @Override
+        public String toString() {
+            return "Specification{" +
+                    "brand='" + brand + '\'' +
+                    ", model='" + model + '\'' +
+                    '}';
+        }
+    }
+    ```
+    - Code is same, only change is **@Component** is added on top of the class.
+        ```java
+        @Component
+        public class Specification {
+            /*
+            
+            <---Same Code --->
+            
+            */
+        }
+        ```
+- Car.java code is same but only change is tag 
+    ```java
+    package car.annotations;
+
+    import org.springframework.beans.factory.annotation.Autowired;
+    import org.springframework.stereotype.Component;
+
+    @Component
+    public class Car {
+
+    //    @Autowired
+        private Specification specification;
+
+        @Autowired
+        public Car(Specification specification) {
+            this.specification = specification;
+        }
+
+        public void getDetails(){
+            System.out.println(specification.toString());
+        }
+    }
+    ```
+    - Code changes are:
+        - @Component on top of class
+            ```java
+            @Component
+            public class Car {
+                /*
+    
+                <---Same Code --->
+                
+                */
+            }
+            ```
+        - @Autowired can be on either constructor or field [anything is fine]
+            - field level autowiring
+                ```java
+                @Autowired
+                private Specification specification;
+                ```
+            - constructor level autowiring
+                ```java
+                @Autowired
+                public Car(Specification specification) {
+                    this.specification = specification;
+                }
+                ```
+- resources/annotationConfig.xml: This config is different for annotation based and is as follows:
+    ```xml
+    <?xml version="1.0" encoding="UTF-8"?>
+    <beans xmlns="http://www.springframework.org/schema/beans"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xmlns:context="http://www.springframework.org/schema/context"
+        xsi:schemaLocation="http://www.springframework.org/schema/beans
+            https://www.springframework.org/schema/beans/spring-beans.xsd
+            http://www.springframework.org/schema/context
+            https://www.springframework.org/schema/context/spring-context.xsd">
+
+        <context:component-scan base-package="car.annotations"/>
+
+    </beans>
+    ```
+    - Extra added tag is 
+        ```xml
+        <context:component-scan base-package="car.annotations"/>
+        ```
+        - Here for base-package, package to be added and in that beans will be created for whatever the classes for which **@Component** are added.
+- App.java
+    ```java
+    package car.annotations;
+
+    import org.springframework.context.ApplicationContext;
+    import org.springframework.context.support.ClassPathXmlApplicationContext;
+
+    public class App {
+        public static void main(String[] args) {
+            ApplicationContext context = new ClassPathXmlApplicationContext("annotationConfig.xml");
+            Car autoWireByNameCar = (Car) context.getBean("car");
+            autoWireByNameCar.getDetails();
+
+            // Specification{brand='null', model='null'}
+        }
+    }
+    ```
+- In console, since no value is there, we can assign default value to the object properties using **@Value** annotation.
+    - Assigning normal default values:
+        ```java
+        @Value("Default Brand")
+        private String brand;
+
+        // brand='Default Brand'
+        ```
+    - Assinging expression [like mathematical]
+        ```java
+        @Value("#{4+4}")
+        private String model;
+
+        // model='8'
+        ```
+    - Assinging any system variables
+        ```java
+        @Value("${java.home}")
+        private String model;
+
+        // model='C:\Program Files\Eclipse Adoptium\jdk-21.0.8.9-hotspot'
+        ```
+- @Qualifier
+    - Whenever there are more than 1 bean of same type but we want to refer particular one, then this annotation can be used, just add along Autowired at field level.
+    - It can't be placed on top of constructor.
+        ```java
+        @Autowired
+        @Qualifier("specification")
+        private Specification specification;
+        ```
+
+## Springboot
 
 
 
