@@ -629,6 +629,16 @@
         ```
 
 ## Springboot
+### Spring Boot Architecture Overview
+- The relationship between Spring Boot and the core Spring Framework can be summarized by the following equation:
+- Springboot is combination of: 
+    - Spring framework
+        - Provides the foundational core features like Dependency Injection (DI) and Inversion of Control (IoC).
+    - Pre-built Configuration
+        - Eliminates heavy boilerplate and XML setup through automatic "opinionated" defaults.
+    - Embedded Servers
+        - Includes built-in servers (like Tomcat or Jetty) so applications can run independently as standalone `.jar` files.
+
 
 
 
