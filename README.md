@@ -639,6 +639,151 @@
     - Embedded Servers
         - Includes built-in servers (like Tomcat or Jetty) so applications can run independently as standalone `.jar` files.
 
+#### Application launch:
+- In project, there is a class with an annotation tagged with **@SpringBootApplication**. And this class contains main method.
+- On running this class, we will get following logs:
+    - Spring ASCII Banner
+        ```
+        .   ____          _            __ _ _
+        /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+        ( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+        \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+        '  |____| .__|_| |_|_| |_\__, | / / / /
+        =========|_|==============|___/=/_/_/_/
+        ```
+    - Springboot version
+        ```
+        :: Spring Boot ::                (v4.1.1)
+        ```
+    - Environment log i.e profile 
+        ```
+        No active profile set, falling back to 1 default profile: "default"
+        ```
+    - Server launched portal:
+        ```
+        Tomcat initialized with port 8080 (http)
+        ```
+    - Context path log:
+        ```
+        Tomcat started on port 8080 (http) with context path '/'
+        ```
+        - i.e if context path is /app then
+            **http://localhost:8080/home** will become **http://localhost:8080/app/home**
+- @RestController:
+    - To map some class as Rest API, we have to tag that class with **@RestController** and it is combination of:
+        - @Controller
+        - @ResponseBody
+- @GetMapping:
+    - Response as normal text:
+        ```java
+        package com.gomad.springboot_basic;
+
+        import org.springframework.web.bind.annotation.GetMapping;
+        import org.springframework.web.bind.annotation.RestController;
+
+        @RestController
+        public class HomeController {
+
+            @GetMapping("/home")
+            public String HomePage(){
+                return "Hello Home..!";
+            }
+        }
+        ```
+    - URL: **http://localhost:8080/home**
+    - Response: Hello Home..!
+    ---
+    - Response as JSON: 
+        ```java
+        package com.gomad.springboot_basic;
+
+        import org.springframework.web.bind.annotation.GetMapping;
+        import org.springframework.web.bind.annotation.RestController;
+
+        @RestController
+        public class HomeController {
+
+            public static class HomeResponse{
+                private String message;
+
+                public HomeResponse(String message) {
+                    this.message = message;
+                }
+
+                public String getMessage() {
+                    return message;
+                }
+
+                public void setMessage(String message) {
+                    this.message = message;
+                }
+            }
+
+            @GetMapping("/homeAsJson")
+            public HomeResponse HomePageAsJson(){
+                return new HomeResponse("Hello Home as Json..!");
+            }
+        }
+        ```
+    - URL: **http://localhost:8080/homeAsJson**
+    - Response:
+        ```json
+        {
+            "message": "Hello Home as Json..!"
+        }
+        ```
+
+- @PostMapping and @RequestBody
+    ```java
+    @PostMapping("/post-home-json")
+    public HomeResponse postHomePage(@RequestBody String message){
+        return new HomeResponse(message);
+    }
+    ```
+    - URL: /post-home-json
+    - Response: 
+        ```json
+        {
+            "message": "Hello welcome to world"
+        }
+        ```
+- Note: 
+    - There is **jackson** library which can convert class object as JSON response.
+- @PathVariable:
+    ```java
+    @GetMapping("/home/{name}")
+    public HomeResponse homePageWithPathParam(@PathVariable String name){
+        return new HomeResponse("Hello " + name + "..!");
+    }
+    ```
+    - URL: /home/govind
+    - Response:
+        ```json
+        {   
+            "message": "Hello govind..!"
+        }
+        ```
+- @RequestParam
+    ```java
+    
+    @GetMapping("/home-path-param")
+    public HomeResponse homePutResponse(@RequestParam("name") String name) {
+        return new HomeResponse("Hello " + name + "..!");
+    }
+    ```
+    - URL: /home-path-param?name=govind
+    - Response:
+        ```json
+        {   
+            "message": "Hello govind..!"
+        }
+        ```
+
+    
+
+
+
+
 
 
 
