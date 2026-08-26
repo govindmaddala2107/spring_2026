@@ -778,19 +778,12 @@
             "message": "Hello govind..!"
         }
         ```
-
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
+## Ecom Project
+### Architecture:
+- Architecture1
+![Architecture1](images/Architecture1.png)
+- Our Application Architecture
+![ApplicationArchitecture](images/ApplicationArchitecture.png)
+- Category API Contract
+![CategoryApiContract](images/CategoryApiContract.png)
 
