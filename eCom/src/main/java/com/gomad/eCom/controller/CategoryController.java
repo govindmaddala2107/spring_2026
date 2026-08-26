@@ -1,25 +1,26 @@
 package com.gomad.eCom.controller;
 
 import com.gomad.eCom.model.Category;
+import com.gomad.eCom.service.CategoryService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.ArrayList;
 import java.util.List;
 
 @RestController
 @RequestMapping("/categories")
 public class CategoryController {
 
-    private List<Category> categories = new ArrayList<>();
+    @Autowired
+    private CategoryService categoryService;
 
     @GetMapping("/all")
     public List<Category> getCategories(){
-        return categories;
+        return categoryService.getAllCategories();
     }
 
     @PostMapping("/add")
-    public List<Category> addCategory(@RequestBody Category category){
-        categories.add(category);
-        return categories;
+    public boolean addCategory(@RequestBody Category category){
+        return categoryService.createCategory(category);
     }
 }
