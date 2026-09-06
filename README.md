@@ -787,3 +787,171 @@
 - Category API Contract
 ![CategoryApiContract](images/CategoryApiContract.png)
 
+### Project Architecture:
+- API Request ==> [Controller(C)] ==> [Service(I)] ==> [Implementation(C)]
+    - C: class
+    - I: Interface
+- Example: /categories/all
+    - controller/Category => service/CategoryService => implementation/CategoryServiceImplementation
+- Our end point are http://localhost:8080/api/public and context path **/api/public** and in application.properties
+    ```
+    server.servlet.context-path=/api/public
+    ```
+- **/category/all**
+    - Using GetMapping and ResponseEntity class itself
+        ```java
+        @RestController
+        @RequestMapping("/category")
+        public class CategoryController {
+
+            @Autowired
+            private CategoryService categoryService;
+
+            @GetMapping("/all")
+            public ResponseEntity<List<Category>> getCategories(){
+                return ResponseEntity.ok().body(categoryService.getAllCategories());
+            }
+        }
+        ```
+    - Using RequestMapping and ResponseEntity object
+        ```java
+        @RestController
+        @RequestMapping("/category")
+        public class CategoryController {
+
+            @Autowired
+            private CategoryService categoryService;
+
+            @RequestMapping(value = "/all", method = RequestMethod.GET)
+            public ResponseEntity<List<Category>> getCategories(){
+                return new ResponseEntity<>(categoryService.getAllCategories(), HttpStatus.OK);
+            }
+        }
+        ```
+    - Note: 
+        - Both ```@RequestMapping(value = "/all", method = RequestMethod.GET)``` and ```@GetMapping("/all")``` works the same.
+        - Also ```return new ResponseEntity<>(categoryService.getAllCategories(), HttpStatus.OK);``` and ```return ResponseEntity.ok().body(categoryService.getAllCategories());``` works same.
+        - Here Field type autowiring is used.
+            ```java
+            @Autowired
+            private CategoryService categoryService;
+            ```
+    - Service class for this is:
+        ```java
+        public interface CategoryService {
+            List<Category> getAllCategories();
+            boolean createCategory(Category category);
+            boolean updateCategory(Long id, Category category);
+            boolean deleteCategory(Long id);
+            Category getCategoryById(Long id);
+        }
+        ```
+    - Here Category model is getting used:
+        ```java
+        package com.gomad.eCom.model;
+
+        public class Category {
+            // 1. Change primitive long to wrapper Long object
+            private Long id;
+            private String categoryName;
+
+            // 2. REQUIRED: Default no-argument constructor for Jackson deserialisation
+            public Category() {
+            }
+
+            public Category(String categoryName, Long id) {
+                this.categoryName = categoryName;
+                this.id = id;
+            }
+
+            // Update getter and setter to use Long wrapper
+            public Long getId() {
+                return id;
+            }
+
+            public void setId(Long id) {
+                this.id = id;
+            }
+
+            public String getCategoryName() {
+                return categoryName;
+            }
+
+            public void setCategoryName(String categoryName) {
+                this.categoryName = categoryName;
+            }
+
+            @Override
+            public String toString() {
+                return "Category{" +
+                        "id=" + id +
+                        ", categoryName='" + categoryName + '\'' +
+                        '}';
+            }
+        }
+        ```
+    - Implementation class of **CategoryService** is:
+        ```java
+        package com.gomad.eCom.implementation;
+
+        import com.gomad.eCom.model.Category;
+        import com.gomad.eCom.service.CategoryService;
+        import org.springframework.stereotype.Service;
+
+        import java.util.ArrayList;
+        import java.util.List;
+        import java.util.Optional;
+
+        @Service
+        public class CategoryServiceImplementation implements CategoryService {
+            private final List<Category> categories = new ArrayList<>();
+            private long nextId = 1L;
+
+            @Override
+            public List<Category> getAllCategories() {
+                return categories;
+            }
+        }
+        ```
+- Common operations and other code needed in implementation is:
+    - Filtering: 
+        ```java
+        @Override
+        public boolean updateCategory(Long id, Category category) {
+            Category cat = categories.stream()
+                    .filter(c -> c.getId().equals(id))
+                    .findFirst()
+                    .orElse(null);
+            if (cat == null){
+                return false;
+            }
+
+            cat.setCategoryName(category.getCategoryName());
+            return true;
+        }
+        ```
+        - Here **stream** is used.
+        - For ```orElse(null)```, we can throw error with status like:
+            ```java
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Record not found"));
+            ```
+    - Optional:
+        ```java
+         public Category getCategoryById(Long id) {
+            Optional<Category> optionalCategory = categories.stream()
+                    .filter(c -> c.getId().equals(id))
+                    .findFirst();
+            return optionalCategory.orElse(null);
+
+            (or)
+
+            if(optionalCategory.isPresent()){
+                return optionalCategory.get();
+            } else{
+                return null;
+            }
+        }
+        ```
+        - Optional will have either value or empty:
+            - **optionalCategory.isPresent()** is used to check it is empty or not.
+            - **optionalCategory.get()** can be used to get data. 

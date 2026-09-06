@@ -1,19 +1,25 @@
 package com.gomad.eCom.model;
 
 public class Category {
-    private long id;
+    // 1. Change primitive long to wrapper Long object
+    private Long id;
     private String categoryName;
 
-    public Category(String categoryName, long id) {
+    // 2. REQUIRED: Default no-argument constructor for Jackson deserialisation
+    public Category() {
+    }
+
+    public Category(String categoryName, Long id) {
         this.categoryName = categoryName;
         this.id = id;
     }
 
-    public long getId() {
+    // Update getter and setter to use Long wrapper
+    public Long getId() {
         return id;
     }
 
-    public void setId(long id) {
+    public void setId(Long id) {
         this.id = id;
     }
 

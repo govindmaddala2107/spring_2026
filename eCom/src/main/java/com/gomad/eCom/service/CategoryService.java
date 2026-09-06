@@ -9,4 +9,7 @@ import java.util.List;
 public interface CategoryService {
     List<Category> getAllCategories();
     boolean createCategory(Category category);
+    boolean updateCategory(Long id, Category category);
+    boolean deleteCategory(Long id);
+    Category getCategoryById(Long id);
 }
