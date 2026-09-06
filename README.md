@@ -955,3 +955,171 @@
         - Optional will have either value or empty:
             - **optionalCategory.isPresent()** is used to check it is empty or not.
             - **optionalCategory.get()** can be used to get data. 
+## Database integration:
+### ORM [Object Resource Mapping]
+- Whenever this is a Java Class, that class can be automatically converted to a table with its attributes being converted to columns.
+- Example: 
+    - Customer Class
+        - id: integer
+        - f_name: String
+        - l_name: String
+    
+    - customer_1:
+        - id: 1
+        - f_name: "AAAA"
+        - l_name: "aaaa"
+
+    - customer_2:
+        - id: 2
+        - f_name: "BBBB"
+        - l_name: "bbbb"
+    - customer_3:
+        - id: 3
+        - f_name: "CCCC"
+        - l_name: "cccc"
+        ```
+        +------------+----+---------+--------+
+        | Customer   | ID | F_NAME  | L_NAME |
+        +------------+----+---------+--------+
+        | customer_1 | 1  | AAAA    | aaaa   |
+        | customer_2 | 2  | BBBB    | bbbb   |
+        | customer_3 | 3  | CCCC    | cccc   |
+        +------------+----+---------+--------+c
+        ```
+- So now developers doesn't have to write queries for table creation, it will be created automatically.
+- Whenever an object is created, its data can be saved in the database as a row in the table, this is automatically handled by ORM.
+- ORM as a concept makes developers' lives easier and lets developers focus on application logic rather than SQL queries.
+- Because of ORM, developers don't need to learn how to write SQL queries since the translation from application to SQL is handled by ORM itself. 
+
+### JPA [Java Persistence API]
+- It allows your application to interact with the database and do all the sort of stuff that any application would want to do.
+- Advantages:
+    - Easy and Simple
+    - Makes querying easier.
+    - Allows to save and update objects.
+    - Easy integration with Springboot.
+### MVP:
+- Presentation Layer: [View (V)]
+    - It represents the data and the application features to the user. This is the layer where in all the controller classes exist.
+- Service Layer: [Controller (C)]
+    - It is where the business logic resides in the application. Tasks such as evaluations, decision making, process of data is done at this layer.
+- Data Access Layer: [Model (M)]
+    - It is the layer where all the repository classes reside.
+    ![alt text](images/ProjectArch.png)
+
+### H2 Database Engine
+- H2 is the Java SQL database. The main features of H2 are:
+
+    - Very fast, open source, JDBC API
+    - Embedded and server modes; in-memory databases
+    - Browser based Console application
+    - Small footprint: around 2.5 MB jar file size
+    - Transaction support, multi-version concurrency
+- Dependencies needed are:
+    - H2
+    - JPA
+- Without configuration, on starting project, following logs come:
+    ```
+    HikariPool-1 - Added connection conn0: url=jdbc:h2:mem:3ce69e46-7acf-4144-94dd-34ad7a64e287 user=SA
+    
+    HHH10001005: Database info:
+	Database JDBC URL [jdbc:h2:mem:3ce69e46-7acf-4144-94dd-34ad7a64e287]
+	Database driver: H2 JDBC Driver
+	Database dialect: H2Dialect
+	Database version: 2.4.240
+	Default catalog/schema: 3CE69E46-7ACF-4144-94DD-34AD7A64E287/PUBLIC
+	Autocommit mode: undefined/unknown
+	Isolation level: READ_COMMITTED [default READ_COMMITTED]
+	JDBC fetch size: 100
+	Pool: DataSourceConnectionProvider
+	Minimum pool size: undefined/unknown
+	Maximum pool size: undefined/unknown
+    ```
+- With configuration in **application.properties**:
+    - **spring.h2.console.enabled=true**
+    ```
+    HikariPool-1 - Added connection conn0: url=jdbc:h2:mem:a4596c87-2631-44eb-8491-41abb611ee3c user=SA
+
+    HHH10001005: Database info:
+	Database JDBC URL [jdbc:h2:mem:a4596c87-2631-44eb-8491-41abb611ee3c]
+	Database driver: H2 JDBC Driver
+	Database dialect: H2Dialect
+	Database version: 2.4.240
+	Default catalog/schema: A4596C87-2631-44EB-8491-41ABB611EE3C/PUBLIC
+	Autocommit mode: undefined/unknown
+	Isolation level: READ_COMMITTED [default READ_COMMITTED]
+	JDBC fetch size: 100
+	Pool: DataSourceConnectionProvider
+	Minimum pool size: undefined/unknown
+	Maximum pool size: undefined/unknown
+
+
+    H2 console available at '/h2-console'. Database available at 'jdbc:h2:mem:a4596c87-2631-44eb-8491-41abb611ee3c'
+    ```
+- Note: 
+    - On every restart, this url will get changed:
+-   http://localhost:8080/h2-console opens
+    ![alt text](images/h2Login.png)
+    - get JDBC URL from the console and paste in JDBC URL input like ```jdbc:h2:mem:3b38fffc-ad41-4184-8ebb-5d9c18ea84f4```
+    ![alt text](images/h2ConsolePage.png)
+- To fix this dynamic url issue, in application.properties, add
+    ```
+    spring.datasource.url=jdbc:h2:mem:testdb
+    ```
+    - jdbc: Connection Protocol
+    - h2: database
+    - mem: in-memory database
+    - testdb: in-memory database name.
+- Now on every restart, console will have:
+    ```
+    HikariPool-1 - Added connection conn0: url=jdbc:h2:mem:testdb user=SA
+
+    HHH10001005: Database info:
+	Database JDBC URL [jdbc:h2:mem:testdb]
+	Database driver: H2 JDBC Driver
+	Database dialect: H2Dialect
+	Database version: 2.4.240
+	Default catalog/schema: TESTDB/PUBLIC
+	Autocommit mode: undefined/unknown
+	Isolation level: READ_COMMITTED [default READ_COMMITTED]
+	JDBC fetch size: 100
+	Pool: DataSourceConnectionProvider
+	Minimum pool size: undefined/unknown
+	Maximum pool size: undefined/unknown
+    ```
+- H2 console available at '/h2-console'. Database available at 'jdbc:h2:mem:testdb'
+
+- Configuration of H2 Database:
+    - In application.properties:
+        ```
+        spring.h2.console.enabled=true
+        spring.datasource.url=jdbc:h2:mem:testdb
+        ```
+
+### Entity [in JPA]
+- In the context of JPA, an entity represents a table in the relational database.
+- A model Category [POJO] 
+    ```java
+    package com.gomad.h2_jpa.model;
+
+    public class Category {
+        private Long id;
+        private String categoryName;
+    }
+- Now this can be changed into entity with **@Entity** annotation imported from **jakarta**. And the code is:
+    ```java
+    package com.gomad.h2_jpa.model;
+
+    import jakarta.persistence.Entity;
+    import jakarta.persistence.Id;
+
+    @Entity
+    public class Category {
+        @Id
+        private Long id;
+        private String categoryName;
+    }
+    ```
+    - Note: **@Id** should be annotated on atleast one field, else server will be crashed. Now in h2-console, category will be added, check in image
+![alt text](images/CategoryEntity.png)
+- **@Entity(name = "categories")** will create table with name **categories**
