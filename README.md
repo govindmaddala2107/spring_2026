@@ -1121,5 +1121,363 @@
     }
     ```
     - Note: **@Id** should be annotated on atleast one field, else server will be crashed. Now in h2-console, category will be added, check in image
+    - Even though JPA is not enforcing, but it's a good practice to keep default constructor.
+        ```java
+        // REQUIRED: Default no-argument constructor for Jackson deserialisation
+        public Category() {
+        }
+        ```
 ![alt text](images/CategoryEntity.png)
 - **@Entity(name = "categories")** will create table with name **categories**
+
+### Extra Configurations in SQL:
+- In application.properties:
+    ```
+    spring.jpa.show-sql=true
+    spring.jpa.properties.hibernate.format_sql=true
+    ```
+    - It will show SQL i.e being generated behind the scenes like as follows:
+        ```
+        Hibernate: 
+            drop table if exists categories cascade 
+        Hibernate: 
+            create table categories (
+                id bigint not null,
+                category_name varchar(255),
+                primary key (id)
+            )
+        ```
+    - **drop table if exists categories cascade** means everytime, server restarts, database gets dropped and created newly. This can be configured by
+        - **spring.jpa.hibernate.ddl-auto=OPTIONS_BELOW**, OPTIONS_BELOW are:
+            - none: nothing will happens to schema
+            - update: updates schema on entity change
+            - create: creates new one
+            - create-drop: creates on server start and drops on server stops
+        - but don't need to use this.
+
+### Generation Types for Identity
+
+- In general, if we don't want to handle the ID generation ourselves, or don't know which strategy to use, we can use the following annotation:
+  - **@GeneratedValue(strategy = GenerationType.IDENTITY)**
+
+- Different Generation Types:
+  - AUTO
+  - IDENTITY
+  - SEQUENCE
+  - TABLE
+  - NONE
+  - 
+- AUTO
+    - Default generation strategy.
+    - Tells JPA to choose the appropriate strategy based on the underlying database (such as PostgreSQL, MySQL, Oracle, etc.).
+        ```java
+        @Id
+        @GeneratedValue(strategy = GenerationType.AUTO)
+        private Long id;
+        ```
+
+- IDENTITY
+    - Uses an identity column in the database to generate primary key values.
+    - Supported by relational databases such as MySQL and PostgreSQL.
+        ```java
+        @Id
+        @GeneratedValue(strategy = GenerationType.IDENTITY)
+        private Long id;
+        ```
+
+- SEQUENCE
+    - Uses a database sequence to generate primary key values.
+    - Sequences are database objects that generate unique numeric values.
+    - Commonly used in databases such as Oracle and PostgreSQL that support sequences.
+        ```java
+        @Id
+        @GeneratedValue(strategy = GenerationType.SEQUENCE)
+        private Long id;
+        ```
+    - Using a Custom Sequence
+
+        - You can explicitly instruct JPA to use a specific database sequence:
+
+            ```java
+            @Id
+            @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "category_seq")
+            @SequenceGenerator(
+                name = "category_seq",
+                sequenceName = "category_sequence",
+                allocationSize = 1
+            )
+            private Long id;
+            ```
+        - JPA uses generator named **category_seq** and that sequence is configured using **@SequenceGenerator**
+            - name: sequence name
+            - allocationSize: incremental value
+
+- TABLE
+    - Uses a separate database table to maintain and generate unique primary key values.
+    - Provides database independence.
+    - Generally slower compared to `IDENTITY` and `SEQUENCE`.
+        ```java
+        @Id
+        @GeneratedValue(strategy = GenerationType.TABLE)
+        private Long id;
+        ```
+    - This can be useful if our databases doesn't support sequence.
+    - Custome Table Sequence is as like
+        ```java
+        @GeneratedValue(strategy = GenerationType.TABLE, generator = "cat_gen")
+        @TableGenerator(
+                name = "cat_gen", 
+                table="id_gen",
+                pkColumnName = "gen_key",
+                valueColumnName = "gen_value",
+                pkColumnValue = "cat_id", allocationSize = 1
+        )
+        ```
+
+- NONE
+    - No automatic ID generation strategy is used.
+    - The application is responsible for assigning the primary key value.
+    ```java
+    @Id
+    private Long id;
+   ```
+- Summary
+
+    | Strategy | Description                              | Common Databases   |
+    | -------- | ---------------------------------------- | ------------------ |
+    | AUTO     | JPA chooses the strategy automatically   | Any                |
+    | IDENTITY | Uses auto-increment/identity columns     | MySQL, PostgreSQL  |
+    | SEQUENCE | Uses database sequences                  | Oracle, PostgreSQL |
+    | TABLE    | Uses a dedicated table for ID generation | Any                |
+    | NONE     | Manual ID assignment                     | Any                |
+
+
+### Defining JPA Repositories:
+- Like Controller, Services, we need **repositories** which will interact with databases.
+- In repositories package create **CategoryRepository** interface and it extends **JpaRepository** which will be used to interact with database and we don't need to write any queries as JpaRepository will give many methods like
+    - findAll
+    - getById
+    - save
+    - saveAll and so on
+- Actually JpaRepository (I) extends 
+    - ListCrudRepository (I) extends 
+        - CrudRepository (I) extends
+            - Repository (I)
+    - ListPagingAndSortingRepository (I) extends
+        - PagingAndSortingRepository (I) extends
+            - Repository (I)
+    - QueryByExampleExecutor (I)
+- CategoryRepository.java (I)
+    ```java 
+    package com.gomad.h2_jpa.repository;
+
+    import com.gomad.h2_jpa.model.Category;
+    import org.springframework.data.jpa.repository.JpaRepository;
+
+    public interface CategoryRepository extends JpaRepository<Category, Long> {
+    }
+   ```
+- So actually it can extends CrudRepository also but we extends **JpaRepository** because it will have more methods.
+- **JpaRepository** takes 2 params:
+    - Table Entity type, here it is Class type i.e Category class.
+    - Primary Key type, here it is data type i.e id dataType i.e Long
+
+- Now we use CategoryRepository 
+    - Before code
+        ```java
+        @Service
+        public class CategoryServiceImplementation implements CategoryService {
+        private final List<Category> categories = new ArrayList<>();
+        private long nextId = 1L;
+        }
+        ```
+    - After Code changes:
+        ```java
+        @Autowired
+        private CategoryRepository categoryRepository;
+        ```
+- Other changes are: 
+    ```java
+    //=====================[getAllCategories]============================//
+    @Override
+    public List<Category> getAllCategories() {
+        return categories;
+    }
+
+    // After
+    @Override
+    public List<Category> getAllCategories() {
+        return categoryRepository.findAll();
+    }
+
+    //=======================[createCategory]==========================//
+    @Override
+    public boolean createCategory(Category category) {
+        category.setId(nextId++);
+        return categories.add(category);
+    }
+
+    // After
+    @Override
+    public boolean createCategory(Category category) {
+        categoryRepository.save(category); // main step
+        return true;
+    }
+
+    //=======================[updateCategory]==========================//
+    @Override
+    public boolean updateCategory(Long id, Category category) {
+        Category cat = categories.stream()
+                .filter(c -> c.getId().equals(id))
+                .findFirst()
+                .orElse(null);
+        if (cat == null){
+              return false;
+        }
+
+        cat.setCategoryName(category.getCategoryName());
+        return true;
+    }
+
+    // After
+    @Override
+    public boolean updateCategory(Long id, Category category) {
+        if (!categoryRepository.existsById(id)) {
+            throw new ResponseStatusException(
+                    HttpStatus.NOT_FOUND,
+                    "Category not found");
+        }
+
+        category.setId(id);
+        categoryRepository.save(category);
+        return true;
+    }
+
+    //=======================[deleteCategory]==========================//
+    @Override
+    public boolean deleteCategory(Long id) {
+        Category category = categories.stream()
+                .filter(c -> c.getId().equals(id))
+                .findFirst()
+                .orElse(null);
+        if(category == null){
+            return false;
+        }
+        return categories.remove(category);
+    }
+
+    // After
+    @Override
+    public boolean deleteCategory(Long id) {
+       Category categoryToDelete = categoryRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Category not found"));
+
+        categoryRepository.delete(categoryToDelete);
+        return true;
+    }
+
+    //=======================[deleteCategory]==========================//
+    @Override
+    public Category getCategoryById(Long id) {
+        Optional<Category> optionalCategory = categories.stream()
+                .filter(c -> c.getId().equals(id))
+                .findFirst();
+        return optionalCategory.orElse(null);
+    }
+
+    // After
+    @Override
+    public Category getCategoryById(Long id) {
+        List<Category> categories = categoryRepository.findAll();
+            Optional<Category> optionalCategory = categories.stream()
+                    .filter(c -> c.getId().equals(id))
+                    .findFirst();
+        return optionalCategory.orElse(null);
+    }
+
+    // [OR]
+    @Override
+    public Category getCategoryById(Long id) {
+        return Optional.of(categoryRepository
+                            .findById(id)
+                            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Category not found")))
+                            .get();
+    }
+    ```
+
+### Validations in Springboot
+- Validations are all about ensuring the data your application receives meets certain criteria before it's processed.
+- Dependency needed is **Hibernate Validator**. but in spring we can use **spring-boot-starter-validation** which can do
+    - bean validation with **Hibernate Validator**.
+- Some validation annotations like:
+    - @NotNull
+    - @NotEmpty
+    - @Size(min=x, max=y)
+    - @Email
+    - @Min(value)
+    - @Max(value)
+- Some code example is:
+    ```java
+    import jakarta.validation.constraints.*
+
+    pulbic class Employee{
+
+        @NotEmpty(message = "Email can't be empty")
+        @Email(message = "Email should be valid")
+        private String email;
+
+        @NotEmpty(message = "Name can't be empty")
+        @Size(min=2, message="Name should have at least 2 characters")
+        private String name;
+
+        @Min(18, message = "Age should be greater than 18")
+        @Max(59, message="Age should be below 60")
+        @NotEmpty(message = "Age can't be empty")
+        private int age;
+    }
+    ```
+#### @Valid:
+- Code is:
+    ```java
+    @Entity(name = "categories")
+    @Data
+    public class Category {
+        // Update getter and setter to use Long wrapper
+        // 1. Change primitive long to wrapper Long object
+        @Id
+        @GeneratedValue(strategy = GenerationType.IDENTITY, generator = "category_seq")
+        private Long id;
+
+        @NotBlank
+        private String categoryName;
+    }
+    ```
+- So here @NotBlank is used. Now if I hit API with categoryName with empty value, it throws directly with 500 status code like below
+![alt text](images/NotBlank.png)
+    - but this is not correct, since it is incorrect data, we have to send 400 code and this can be done by **@Valid** annotation which has to pass at **controller** level like below:
+    ```java
+    @RestController
+    @RequestMapping("/category")
+    public class CategoryController {
+
+        // BEFORE CODE CHANGE
+        @PostMapping("/add")
+        public ResponseEntity<String> addCategory( @RequestBody Category category) {
+            
+            // Category addition logic
+        }
+
+        // AFTER CODE CHANGE
+        @PostMapping("/add")
+        public ResponseEntity<String> addCategory(
+            @Valid // <--@Valid is added here-->
+            @RequestBody Category category) {
+            
+            // Category addition logic
+        }
+    }
+    ```
+- Now after adding @Valid in controller it becomes like below i.e 400 status code is coming.
+![alt text](images/ValidAndNotBlank.png)
