@@ -1,8 +1,12 @@
 package com.gomad.h2_jpa.implementation;
 
 import com.gomad.h2_jpa.model.Category;
+import com.gomad.h2_jpa.repository.CategoryRepository;
 import com.gomad.h2_jpa.service.CategoryService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -10,62 +14,49 @@ import java.util.Optional;
 
 @Service
 public class CategoryServiceImplementation implements CategoryService {
-    private final List<Category> categories = new ArrayList<>();
-    private long nextId = 1L;
+//    private final List<Category> categories = new ArrayList<>();
+//    private long nextId = 1L;
+
+    @Autowired
+    private CategoryRepository categoryRepository;
 
     @Override
     public List<Category> getAllCategories() {
-        return categories;
+        return categoryRepository.findAll();
     }
 
     @Override
     public boolean createCategory(Category category) {
-        category.setId(nextId++);
-        return categories.add(category);
+        categoryRepository.save(category);
+        return true;
     }
 
     @Override
     public boolean updateCategory(Long id, Category category) {
-        Category cat = categories.stream()
-                .filter(c -> c.getId().equals(id))
-                .findFirst()
-                .orElse(null);
-        if (cat == null){
-              return false;
+        if (!categoryRepository.existsById(id)) {
+            throw new ResponseStatusException(
+                    HttpStatus.NOT_FOUND,
+                    "Category not found");
         }
 
-        cat.setCategoryName(category.getCategoryName());
+        category.setId(id);
+        categoryRepository.save(category);
         return true;
     }
 
     @Override
     public boolean deleteCategory(Long id) {
-        Category category = categories.stream()
-                .filter(c -> c.getId().equals(id))
-                .findFirst()
-                .orElse(null);
-        if(category == null){
-            return false;
-        }
-        return categories.remove(category);
+        Category categoryToDelete = categoryRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Category not found"));
+
+        categoryRepository.delete(categoryToDelete);
+        return true;
     }
 
     @Override
     public Category getCategoryById(Long id) {
-//        return categories.stream()
-//                .filter(c -> c.getId().equals(id))
-//                .findFirst()
-//                .orElse(null);
-//                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Record not found"));
-
-        Optional<Category> optionalCategory = categories.stream()
-                .filter(c -> c.getId().equals(id))
-                .findFirst();
-        return optionalCategory.orElse(null);
-//        if(optionalCategory.isPresent()){
-//            return optionalCategory.get();
-//        } else{
-//            return null;
-//        }
+        return Optional.of(categoryRepository.findById(id).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Category not found"))).get();
     }
 }

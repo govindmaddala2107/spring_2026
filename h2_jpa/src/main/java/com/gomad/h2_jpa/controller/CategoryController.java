@@ -2,6 +2,7 @@ package com.gomad.h2_jpa.controller;
 
 import com.gomad.h2_jpa.model.Category;
 import com.gomad.h2_jpa.service.CategoryService;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -37,7 +38,7 @@ public class CategoryController {
     }
 
     @PostMapping("/add")
-    public ResponseEntity<String> addCategory(@RequestBody Category category) {
+    public ResponseEntity<String> addCategory(@Valid @RequestBody Category category) {
         boolean isSaved = categoryService.createCategory(category);
 
         if (isSaved) {
