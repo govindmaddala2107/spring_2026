@@ -1596,7 +1596,7 @@
     - **Handle Custom Exceptions in Controller Advice**: We can make use of **RestControllerAdvice**, a exception handler method to catch custom exceptions and convert them into relevant or appropriate HTTP responses along with status codes. This approach helps in maintaining Consistency.
 
 #### Some other Custom Exceptions:
-- ResourceNotFoundException exception: 
+- **ResourceNotFoundException** exception: 
     ```java
     package com.gomad.h2_jpa.exceptions;
 
@@ -1645,3 +1645,54 @@
 - Now at any point, if you want to throw, we can throw like object instantiation.
     - new ResourceNotFoundException("Category", "CategoryId", id)
 - Now since ResourceNotFoundException extends RunTimeException, it will get intercepted by **MyGlobalExceptionHandler**. 
+
+- **APIException** Exception:
+- We can use this like a generic one.
+    ```java
+    package com.gomad.h2_jpa.exceptions;
+
+    public class APIException extends RuntimeException {
+        private final static  long serialVersionUID = 1L;
+
+        public APIException(String message) {
+            super(message);
+        }
+        public APIException(String message, Throwable cause) {
+
+        }
+    }
+    ```
+- Wrapping it as method in **MyGlobalExceptionHandler** class
+    ```java
+    @ExceptionHandler(APIException.class)
+    public ResponseEntity<String> myAPIException(APIException e){
+        return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);
+    }
+    ```
+
+- Using it in project as: 
+    ```java
+    @Override
+    public List<Category> getAllCategories() {
+        List<Category> categories = categoryRepository.findAll();
+        if(categories.isEmpty()){
+            throw new APIException("No categories found");
+        }
+        return categories;
+    }
+
+    @Override
+    public boolean createCategory(Category category) {
+        Category existingCategory = categoryRepository.findByCategoryName(category.getCategoryName());
+        if(existingCategory != null){
+            new APIException("Category with name " + category.getCategoryName() + " already exists !!!");
+        }
+        categoryRepository.save(category);
+        return true;
+    }
+    ```
+- Now at any point, if you want to throw, we can throw like object instantiation.
+    - throw new APIException("Category with name " + category.getCategoryName() + " already exists !!!");
+    - throw new APIException("No categories found");
+- Now since APIException extends RunTimeException, it will get intercepted by **MyGlobalExceptionHandler**. 
+
