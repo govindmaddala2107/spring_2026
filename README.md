@@ -1129,6 +1129,23 @@
         ```
 ![alt text](images/CategoryEntity.png)
 - **@Entity(name = "categories")** will create table with name **categories**
+- Note:
+    - In production ready code, our entities should be focused on how data is structured and stored in the database but they should not dictate how the data to be presented to the end user.
+    - As long as entities are representing the data structure and how it's being represented in the database then **IT IS A PROBLEM**.
+    - Example for Category, in response it will be like 
+        ```json
+        [
+            {
+                "categoryName": "Fruits",
+                "id": 1
+            },
+            {
+                "categoryName": "Vegetables",
+                "id": 2
+            }
+        ]
+        ```
+    - So in case if I want some other field or to remove [like password], then with current approach, we need to add that field as column in database i.e entity is determining what to get represented. So as to handle this we use **Custom Responses**. [Click here](#custom-responses)
 
 ### Extra Configurations in SQL:
 - In application.properties:
@@ -1696,3 +1713,51 @@
     - throw new APIException("No categories found");
 - Now since APIException extends RunTimeException, it will get intercepted by **MyGlobalExceptionHandler**. 
 
+
+
+### Pagination:
+- Request elements be like 
+    - page=1&limit=10
+- It contains some key response elements like:
+    ```json
+    {
+        "pageNumber": 0,
+        "pageSize": 50,
+        "totalElements": 11,
+        "totalPages": 1,
+        "lastPage": true
+    }
+    ```
+- So for page=1&limit=10, response will be like
+    ```json
+    {
+        "content": [
+            {
+                "id": 1,
+                "title": "sunt aut facere repellat provident occaecati excepturi optio reprehenderit",
+                "body": "quia et suscipit\nsuscipit recusandae consequuntur expedita et cum\nreprehenderit molestiae ut ut quas totam\nnostrum rerum est autem sunt rem eveniet architecto"
+            },
+            .........
+            {
+                "id": 10,
+                "title": "optio molestias id quia eum",
+                "body": "quo et expedita modi cum officia vel magni\ndoloribus qui repudiandae\nvero nisi sit\nquos veniam quod sed accusamus veritatis error"
+            }
+        ],
+        "pageNumber": 0,
+        "pageSize": 10,
+        "totalElements": 1000,
+        "totalPages": 100,
+        "lastPage": false
+    }
+    ```
+
+### Custom Responses:
+- Custom responses/ Custom objects is like a package of data that you create specifically for your end users.
+- This is done by DTOs [Data Transfer Objects]
+
+### DTOs [Data Transfer Objects]
+- DTOs is like a custom object that we have to send as a response to API consumers. 
+- Benefits of using DTOs are:
+    - They allow to tailor the data i.e if we don't want some fields [like password], we can control that.
+    - Using this now we can decouple model from response.
