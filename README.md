@@ -1277,6 +1277,21 @@
     public interface CategoryRepository extends JpaRepository<Category, Long> {
     }
    ```
+
+### Custom Query methods:
+- Now Category has Id and CategoryName, so by default we can find findById method but now if I want to create a repository method for categoryName, we can do but we need to follow the casing like findByCategoryName.
+- Now in CategoryRepository, we can add and code becomes like
+    ```java
+    public interface CategoryRepository extends JpaRepository<Category, Long> {
+        Category findByCategoryName(String categoryName);
+    }
+    ```
+- Now with this, JPA will automatically analyse the declaration and automatically implement on the fly. But we have to follow the naming convention [camel casing] like
+    - findByCategoryName 
+        - find + By [Means Select operation] 
+        - CategoryName [where condition and this field should be matched with field provided in Category class i.e categoryName]
+    - With this Spring data JPA will take care of everything and we don't need to write any SQL query.
+
 - So actually it can extends CrudRepository also but we extends **JpaRepository** because it will have more methods.
 - **JpaRepository** takes 2 params:
     - Table Entity type, here it is Class type i.e Category class.
@@ -1481,3 +1496,152 @@
     ```
 - Now after adding @Valid in controller it becomes like below i.e 400 status code is coming.
 ![alt text](images/ValidAndNotBlank.png)
+
+
+### Exceptions
+#### Global Exception Handler:
+- In above example, 
+    ```java
+        public class Category {
+        // Update getter and setter to use Long wrapper
+        // 1. Change primitive long to wrapper Long object
+        @Id
+        @GeneratedValue(strategy = GenerationType.IDENTITY, generator = "category_seq")
+        private Long id;
+
+        @NotBlank(message = "Category name shouldn't be blank.")
+        @Size(min = 5, message = "Category name should be at least of size of 5 characters.")
+        private String categoryName;
+    }
+    ```
+- Now still we will get response
+    ```json
+        {
+        "timestamp": "2026-09-13T07:56:31.049Z",
+        "status": 400,
+        "error": "Bad Request",
+        "path": "/api/public/category/add"
+    }
+    ```
+    and on console we will get error and import points are: 
+- **MethodArgumentNotValidException** exception with 2 errors:
+    - **NotBlank** | default message [Category name shouldn't be blank.]
+    - **Size** | default message [Category name should be at least of size of 5 characters.]
+    
+- Now we can add **GlobalExceptionHandler** with annotation named **@RestControllerAdvice** which will intercept **RestController** APIs when some exception comes.
+- Code for Exception handler is as follows:
+    ```java
+    package com.gomad.h2_jpa.exceptions;
+
+    import org.springframework.http.HttpStatus;
+    import org.springframework.http.ResponseEntity;
+    import org.springframework.validation.FieldError;
+    import org.springframework.web.bind.MethodArgumentNotValidException;
+    import org.springframework.web.bind.annotation.ExceptionHandler;
+    import org.springframework.web.bind.annotation.RestControllerAdvice;
+
+    import java.util.HashMap;
+    import java.util.Map;
+
+    @RestControllerAdvice
+    public class MyGlobalExceptionHandler {
+
+        @ExceptionHandler(MethodArgumentNotValidException.class)
+        public ResponseEntity<Map<String, String>> myMethodArgumentNotValidException(MethodArgumentNotValidException e){
+            Map<String, String> errors = new HashMap<>();
+
+            e.getBindingResult().getAllErrors().forEach(err -> {
+                String key = ((FieldError)err).getField();
+                String msg = err.getDefaultMessage();
+
+                errors.put(key, msg);
+            });
+            return new ResponseEntity<>(errors, HttpStatus.BAD_REQUEST);
+        }
+    }
+    ```
+- Using **@ExceptionHandler(MethodArgumentNotValidException.class)** we can define like for which exception we can intercept.
+    - **@ExceptionHandler(Exception.class)** will intercept all exceptions. 
+- With above **GlobalExceptionHandler**, now we can get message like:
+    - For request body
+        - "categoryName": "", response is 
+            - "categoryName": "Category name shouldn't be blank."
+        - "categoryName": "a", response is 
+            - "categoryName": "Category name should be at least of size of 5 characters."
+
+#### Custom Exceptions:
+- In some places, we are using **ResponseStatusException** like:
+    ```java
+    @Override
+    public boolean deleteCategory(Long id) {
+        Category categoryToDelete = categoryRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Category not found"));
+
+        categoryRepository.delete(categoryToDelete);
+        return true;
+    }
+    ```
+- Using **ResponseStatusException** is straight forward but in production ready applications, we will use **Custom exceptions**.
+- Why consider Custom Exceptions anyway when ResponseStatusException is there?
+    - **Separation of concerns**: Custom exceptions can keep business logic layer clean from web layer constructs.
+    - **Consistency & Reusuability**: It makes easier to change the error handling behaviour from one place and making it a centralized place to maintain a standard procedure for throwing errors.
+    - **Detailer Error Information**: Custom exceptions give you the flexibility to include additional information [to debug] about the error [like as feedback] other than just error code and status.
+    - **Complex Error Handling Logic**: If our apps require some domain specific complex error handling logic to determine the error state, then custom exceptions can encapsulate the logic and it can make our service methods much cleaner, more focused on their primary responsibility.
+- Using Custom Exceptions with ResponseStatusException:
+    - **ResponseStatusException** for direct feedback: 
+        - to provide any detailed direct feedback via controller, we can use this. BUT
+    - **Define Custom Exceptions for Business logic**: But if we want customized exceptions for business logic, we make use of Custom Exceptions. SO FOR THAT
+    - **Handle Custom Exceptions in Controller Advice**: We can make use of **RestControllerAdvice**, a exception handler method to catch custom exceptions and convert them into relevant or appropriate HTTP responses along with status codes. This approach helps in maintaining Consistency.
+
+#### Some other Custom Exceptions:
+- ResourceNotFoundException exception: 
+    ```java
+    package com.gomad.h2_jpa.exceptions;
+
+    public class ResourceNotFoundException extends RuntimeException {
+
+        String resourceName;
+        String field;
+        String fieldName;
+        Long fieldId;
+        public ResourceNotFoundException(String resourceName, String field, String fieldName) {
+            super(String.format("%s does not have %s: %s", resourceName, fieldName, field));
+            this.resourceName = resourceName;
+            this.field = field;
+            this.fieldName = fieldName;
+        }
+
+        public ResourceNotFoundException(String resourceName, String field, Long fieldId) {
+            super(String.format("%s does not have %s: %d", resourceName, field, fieldId));
+            this.resourceName = resourceName;
+            this.field = field;
+            this.fieldId = fieldId;
+        }
+
+        public ResourceNotFoundException() {
+        }
+    }
+    ```
+- Wrapping it as method in **MyGlobalExceptionHandler** class
+    ```java
+    @ExceptionHandler(ResourceNotFoundException.class)
+    public ResponseEntity<String> myResourceNotFoundException(ResourceNotFoundException e){
+        return new ResponseEntity<>(e.getMessage(), HttpStatus.NOT_FOUND);
+    }
+    ```
+
+- Using it in project as: 
+    ```java
+    public boolean deleteCategory(Long id) {
+        Category categoryToDelete = categoryRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Category", "CategoryId", id));
+
+        categoryRepository.delete(categoryToDelete);
+        return true;
+    }
+    ```
+- Now at any point, if you want to throw, we can throw like object instantiation.
+    - new ResourceNotFoundException("Category", "CategoryId", id)
+- Now since ResourceNotFoundException extends RunTimeException, it will get intercepted by **MyGlobalExceptionHandler**. 

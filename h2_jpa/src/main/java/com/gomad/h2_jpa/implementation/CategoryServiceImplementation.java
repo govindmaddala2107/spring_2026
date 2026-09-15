@@ -1,5 +1,7 @@
 package com.gomad.h2_jpa.implementation;
 
+import com.gomad.h2_jpa.exceptions.APIException;
+import com.gomad.h2_jpa.exceptions.ResourceNotFoundException;
 import com.gomad.h2_jpa.model.Category;
 import com.gomad.h2_jpa.repository.CategoryRepository;
 import com.gomad.h2_jpa.service.CategoryService;
@@ -22,11 +24,19 @@ public class CategoryServiceImplementation implements CategoryService {
 
     @Override
     public List<Category> getAllCategories() {
-        return categoryRepository.findAll();
+        List<Category> categories = categoryRepository.findAll();
+        if(categories.isEmpty()){
+            throw new APIException("No categories found");
+        }
+        return categories;
     }
 
     @Override
     public boolean createCategory(Category category) {
+        Category existingCategory = categoryRepository.findByCategoryName(category.getCategoryName());
+        if(existingCategory != null){
+            throw new APIException("Category with name " + category.getCategoryName() + " already exists !!!");
+        }
         categoryRepository.save(category);
         return true;
     }
@@ -34,9 +44,7 @@ public class CategoryServiceImplementation implements CategoryService {
     @Override
     public boolean updateCategory(Long id, Category category) {
         if (!categoryRepository.existsById(id)) {
-            throw new ResponseStatusException(
-                    HttpStatus.NOT_FOUND,
-                    "Category not found");
+            throw new ResourceNotFoundException("Category", "CategoryId", id);
         }
 
         category.setId(id);
@@ -47,9 +55,7 @@ public class CategoryServiceImplementation implements CategoryService {
     @Override
     public boolean deleteCategory(Long id) {
         Category categoryToDelete = categoryRepository.findById(id)
-                .orElseThrow(() -> new ResponseStatusException(
-                        HttpStatus.NOT_FOUND,
-                        "Category not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Category", "CategoryId", id));
 
         categoryRepository.delete(categoryToDelete);
         return true;

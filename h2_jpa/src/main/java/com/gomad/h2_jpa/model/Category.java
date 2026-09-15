@@ -2,6 +2,7 @@ package com.gomad.h2_jpa.model;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
@@ -14,6 +15,7 @@ public class Category {
     @GeneratedValue(strategy = GenerationType.IDENTITY, generator = "category_seq")
     private Long id;
 
-    @NotBlank
+    @NotBlank(message = "Category name shouldn't be blank.")
+    @Size(min = 5, message = "Category name should be at least of size of 5 characters.")
     private String categoryName;
 }
