@@ -1757,7 +1757,141 @@
 - This is done by DTOs [Data Transfer Objects]
 
 ### DTOs [Data Transfer Objects]
+- DTO is a designed pattern used to transfer data between software application & sub-systems.
+- These are light weight representation of original class objects.
+- Entire process looks like:
+    - [Category] ==> [Data Transfer Object (DTO)] ==> [JSON]
 - DTOs is like a custom object that we have to send as a response to API consumers. 
 - Benefits of using DTOs are:
     - They allow to tailor the data i.e if we don't want some fields [like password], we can control that.
     - Using this now we can decouple model from response.
+- Entire flow of data packet from request to response in form of DTO is as follows:
+![alt text](images/DTOFlow.png)
+- ##### Implementing DTO Pattern
+    - create payload package:
+        - for request dtos, create **CategoryDTO** class:
+            ```java
+            package com.gomad.h2_jpa.payload;
+
+            import lombok.*;
+
+            @Data
+            @NoArgsConstructor
+            @AllArgsConstructor
+            public class CategoryDTO {
+                private Long id;
+                private String categoryName;
+            }
+            ```
+        - for response dtos, create **CategoryResponse** class:
+            ```java
+            package com.gomad.h2_jpa.payload;
+
+            import lombok.*;
+
+            @Data
+            @AllArgsConstructor
+            @NoArgsConstructor
+            public class CategoryResponse {
+                private List<CategoryDTO> categories;
+            }
+            ```
+        
+        - In CategoryService.java:
+            ```java
+            public interface CategoryService {
+
+            // before:
+            List<Category> getAllCategories();
+
+            // After DTO
+            CategoryResponse getAllCategories();
+            }
+            ```
+        - Now in CategoryImplementation.java
+            ```java
+
+            public class CategoryServiceImplementation implements CategoryService {
+
+                // Before
+                @Override
+                public List<Category> getAllCategories() {
+                    List<Category> categories = categoryRepository.findAll();
+                    if(categories.isEmpty()){
+                        throw new APIException("No categories found");
+                    }
+                    return categories;
+                }
+
+
+                // After
+
+                @Autowired
+                private CategoryRepository categoryRepository;
+
+                @Override
+                public CategoryResponse getAllCategories() {
+                    List<Category> categories = categoryRepository.findAll();
+                    if(categories.isEmpty()){
+                        throw new APIException("No categories found");
+                    }
+                    return categories;
+                }
+            }
+            ```
+        - **return categories;** will be error because return type is not **CategoryResponse**, in this case, typecasting is not the solution, for this **Model Mapping** is used.
+- ##### Model Mapping
+    - ModelMapper analyzes your object model to intelligently determine how data should be mapped. There's no manual mapping needed. 
+    - ModelMapper does most of the work for you, automatically projecting and flattening complex models.
+    - Dependency needed is **modelmapper**.
+        ```java
+        package com.gomad.h2_jpa.config;
+
+        import org.modelmapper.ModelMapper;
+        import org.springframework.context.annotation.Bean;
+        import org.springframework.context.annotation.Configuration;
+
+        @Configuration
+        public class AppConfig {
+            
+            @Bean
+            public ModelMapper modelMapper(){
+                return new ModelMapper();
+            }
+        }
+        ```
+    - So now CategoryImplementation.java becomes like:
+        ```java
+        @Service
+        public class CategoryServiceImplementation implements CategoryService {
+
+            @Autowired
+            private CategoryRepository categoryRepository;
+
+            @Autowired
+            private ModelMapper modelMapper;
+
+            @Override
+            public CategoryResponse getAllCategories() {
+                List<Category> categories = categoryRepository.findAll();
+                if(categories.isEmpty()){
+                    throw new APIException("No categories found");
+                }
+
+                List<CategoryDTO> categoryDTOS = categories.stream()
+                        .map(category -> modelMapper.map(category, CategoryDTO.class))
+                        .toList();
+
+                CategoryResponse categoryResponse = new CategoryResponse();
+                categoryResponse.setCategories(categoryDTOS);
+                return categoryResponse;
+            }
+        }
+    - So now controller becomes:
+        ```java
+        @RequestMapping(value = "/all", method = RequestMethod.GET)
+        public ResponseEntity<CategoryResponse> getCategories(){
+            return ResponseEntity.ok().body(categoryService.getAllCategories());
+        }
+        ```
+

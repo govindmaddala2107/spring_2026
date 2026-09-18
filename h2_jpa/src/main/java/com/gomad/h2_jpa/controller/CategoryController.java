@@ -1,6 +1,7 @@
 package com.gomad.h2_jpa.controller;
 
 import com.gomad.h2_jpa.model.Category;
+import com.gomad.h2_jpa.payload.CategoryResponse;
 import com.gomad.h2_jpa.service.CategoryService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,7 +21,7 @@ public class CategoryController {
 
 //    @GetMapping("/all")
     @RequestMapping(value = "/all", method = RequestMethod.GET)
-    public ResponseEntity<List<Category>> getCategories(){
+    public ResponseEntity<CategoryResponse> getCategories(){
 //        return categoryService.getAllCategories();
 //        return new ResponseEntity<>(categoryService.getAllCategories(), HttpStatus.OK);
         return ResponseEntity.ok().body(categoryService.getAllCategories());

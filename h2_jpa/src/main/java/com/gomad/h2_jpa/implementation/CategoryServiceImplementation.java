@@ -3,8 +3,11 @@ package com.gomad.h2_jpa.implementation;
 import com.gomad.h2_jpa.exceptions.APIException;
 import com.gomad.h2_jpa.exceptions.ResourceNotFoundException;
 import com.gomad.h2_jpa.model.Category;
+import com.gomad.h2_jpa.payload.CategoryDTO;
+import com.gomad.h2_jpa.payload.CategoryResponse;
 import com.gomad.h2_jpa.repository.CategoryRepository;
 import com.gomad.h2_jpa.service.CategoryService;
+import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -13,6 +16,7 @@ import org.springframework.web.server.ResponseStatusException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 public class CategoryServiceImplementation implements CategoryService {
@@ -22,13 +26,23 @@ public class CategoryServiceImplementation implements CategoryService {
     @Autowired
     private CategoryRepository categoryRepository;
 
+    @Autowired
+    private ModelMapper modelMapper;
+
     @Override
-    public List<Category> getAllCategories() {
+    public CategoryResponse getAllCategories() {
         List<Category> categories = categoryRepository.findAll();
         if(categories.isEmpty()){
             throw new APIException("No categories found");
         }
-        return categories;
+
+        List<CategoryDTO> categoryDTOS = categories.stream()
+                .map(category -> modelMapper.map(category, CategoryDTO.class))
+                .toList();
+
+        CategoryResponse categoryResponse = new CategoryResponse();
+        categoryResponse.setCategories(categoryDTOS);
+        return categoryResponse;
     }
 
     @Override
