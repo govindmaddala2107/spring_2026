@@ -1,71 +1,96 @@
 package com.gomad.h2_jpa.implementation;
 
+import com.gomad.h2_jpa.exceptions.APIException;
+import com.gomad.h2_jpa.exceptions.ResourceNotFoundException;
 import com.gomad.h2_jpa.model.Category;
+import com.gomad.h2_jpa.payload.CategoryDTO;
+import com.gomad.h2_jpa.payload.CategoryResponse;
+import com.gomad.h2_jpa.repository.CategoryRepository;
 import com.gomad.h2_jpa.service.CategoryService;
+import org.modelmapper.ModelMapper;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 
 @Service
 public class CategoryServiceImplementation implements CategoryService {
-    private final List<Category> categories = new ArrayList<>();
-    private long nextId = 1L;
+
+    @Autowired
+    private CategoryRepository categoryRepository;
+
+    @Autowired
+    private ModelMapper modelMapper;
 
     @Override
-    public List<Category> getAllCategories() {
-        return categories;
+    public CategoryResponse getAllCategories() {
+        List<Category> categories = categoryRepository.findAll();
+
+        List<CategoryDTO> categoryDTOS = categories.stream()
+                .map(category -> modelMapper.map(category, CategoryDTO.class))
+                .toList();
+
+        CategoryResponse categoryResponse = new CategoryResponse();
+        categoryResponse.setCategories(categoryDTOS);
+        return categoryResponse;
     }
 
     @Override
-    public boolean createCategory(Category category) {
-        category.setId(nextId++);
-        return categories.add(category);
+    public CategoryResponse getAllCategoriesPagination(Integer pageNumber, Integer pageSize) {
+
+        Pageable pageable = PageRequest.of(pageNumber, pageSize);
+        Page<Category> categoryPage = categoryRepository.findAll(pageable);
+        List<Category> categories = categoryPage.getContent();
+
+        List<CategoryDTO> categoryDTOS = categories.stream()
+                .map(category -> modelMapper.map(category, CategoryDTO.class))
+                .toList();
+
+        CategoryResponse categoryResponse = new CategoryResponse();
+        categoryResponse.setCategories(categoryDTOS);
+        return categoryResponse;
     }
 
     @Override
-    public boolean updateCategory(Long id, Category category) {
-        Category cat = categories.stream()
-                .filter(c -> c.getId().equals(id))
-                .findFirst()
-                .orElse(null);
-        if (cat == null){
-              return false;
+    public CategoryDTO createCategory(CategoryDTO categoryDTO) {
+        Category category = modelMapper.map(categoryDTO, Category.class);
+        CategoryDTO existingCategory = categoryRepository.findByCategoryName(categoryDTO.getCategoryName());
+        if(existingCategory != null){
+            throw new APIException("Category with name " + categoryDTO.getCategoryName() + " already exists !!!");
+        }
+        // In case we want to return DTO then
+        Category savedCategory = categoryRepository.save(category);
+        return modelMapper.map(savedCategory, CategoryDTO.class);
+    }
+
+    @Override
+    public CategoryDTO updateCategory(Long id, CategoryDTO categoryDTO) {
+        Category category = modelMapper.map(categoryDTO, Category.class);
+        if (!categoryRepository.existsById(id)) {
+            throw new ResourceNotFoundException("Category", "CategoryId", id);
         }
 
-        cat.setCategoryName(category.getCategoryName());
-        return true;
+        category.setId(id);
+        Category updatedCategory = categoryRepository.save(category);
+        return modelMapper.map(updatedCategory, CategoryDTO.class);
     }
 
     @Override
-    public boolean deleteCategory(Long id) {
-        Category category = categories.stream()
-                .filter(c -> c.getId().equals(id))
-                .findFirst()
-                .orElse(null);
-        if(category == null){
-            return false;
-        }
-        return categories.remove(category);
+    public CategoryDTO deleteCategory(Long id) {
+        Category categoryToDelete = categoryRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Category", "CategoryId", id));
+
+        categoryRepository.delete(categoryToDelete);
+        return modelMapper.map(categoryToDelete, CategoryDTO.class);
     }
 
     @Override
-    public Category getCategoryById(Long id) {
-//        return categories.stream()
-//                .filter(c -> c.getId().equals(id))
-//                .findFirst()
-//                .orElse(null);
-//                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Record not found"));
-
-        Optional<Category> optionalCategory = categories.stream()
-                .filter(c -> c.getId().equals(id))
-                .findFirst();
-        return optionalCategory.orElse(null);
-//        if(optionalCategory.isPresent()){
-//            return optionalCategory.get();
-//        } else{
-//            return null;
-//        }
+    public CategoryDTO getCategoryById(Long id) {
+        Category categoryFound = categoryRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Category", "CategoryId", id));
+        return modelMapper.map(categoryFound, CategoryDTO.class);
     }
 }

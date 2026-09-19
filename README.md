@@ -1121,5 +1121,872 @@
     }
     ```
     - Note: **@Id** should be annotated on atleast one field, else server will be crashed. Now in h2-console, category will be added, check in image
+    - Even though JPA is not enforcing, but it's a good practice to keep default constructor.
+        ```java
+        // REQUIRED: Default no-argument constructor for Jackson deserialisation
+        public Category() {
+        }
+        ```
 ![alt text](images/CategoryEntity.png)
 - **@Entity(name = "categories")** will create table with name **categories**
+- Note:
+    - In production ready code, our entities should be focused on how data is structured and stored in the database but they should not dictate how the data to be presented to the end user.
+    - As long as entities are representing the data structure and how it's being represented in the database then **IT IS A PROBLEM**.
+    - Example for Category, in response it will be like 
+        ```json
+        [
+            {
+                "categoryName": "Fruits",
+                "id": 1
+            },
+            {
+                "categoryName": "Vegetables",
+                "id": 2
+            }
+        ]
+        ```
+    - So in case if I want some other field or to remove [like password], then with current approach, we need to add that field as column in database i.e entity is determining what to get represented. So as to handle this we use **Custom Responses**. [Click here](#custom-responses)
+
+### Extra Configurations in SQL:
+- In application.properties:
+    ```
+    spring.jpa.show-sql=true
+    spring.jpa.properties.hibernate.format_sql=true
+    ```
+    - It will show SQL i.e being generated behind the scenes like as follows:
+        ```
+        Hibernate: 
+            drop table if exists categories cascade 
+        Hibernate: 
+            create table categories (
+                id bigint not null,
+                category_name varchar(255),
+                primary key (id)
+            )
+        ```
+    - **drop table if exists categories cascade** means everytime, server restarts, database gets dropped and created newly. This can be configured by
+        - **spring.jpa.hibernate.ddl-auto=OPTIONS_BELOW**, OPTIONS_BELOW are:
+            - none: nothing will happens to schema
+            - update: updates schema on entity change
+            - create: creates new one
+            - create-drop: creates on server start and drops on server stops
+        - but don't need to use this.
+
+### Generation Types for Identity
+
+- In general, if we don't want to handle the ID generation ourselves, or don't know which strategy to use, we can use the following annotation:
+  - **@GeneratedValue(strategy = GenerationType.IDENTITY)**
+
+- Different Generation Types:
+  - AUTO
+  - IDENTITY
+  - SEQUENCE
+  - TABLE
+  - NONE
+  - 
+- AUTO
+    - Default generation strategy.
+    - Tells JPA to choose the appropriate strategy based on the underlying database (such as PostgreSQL, MySQL, Oracle, etc.).
+        ```java
+        @Id
+        @GeneratedValue(strategy = GenerationType.AUTO)
+        private Long id;
+        ```
+
+- IDENTITY
+    - Uses an identity column in the database to generate primary key values.
+    - Supported by relational databases such as MySQL and PostgreSQL.
+        ```java
+        @Id
+        @GeneratedValue(strategy = GenerationType.IDENTITY)
+        private Long id;
+        ```
+
+- SEQUENCE
+    - Uses a database sequence to generate primary key values.
+    - Sequences are database objects that generate unique numeric values.
+    - Commonly used in databases such as Oracle and PostgreSQL that support sequences.
+        ```java
+        @Id
+        @GeneratedValue(strategy = GenerationType.SEQUENCE)
+        private Long id;
+        ```
+    - Using a Custom Sequence
+
+        - You can explicitly instruct JPA to use a specific database sequence:
+
+            ```java
+            @Id
+            @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "category_seq")
+            @SequenceGenerator(
+                name = "category_seq",
+                sequenceName = "category_sequence",
+                allocationSize = 1
+            )
+            private Long id;
+            ```
+        - JPA uses generator named **category_seq** and that sequence is configured using **@SequenceGenerator**
+            - name: sequence name
+            - allocationSize: incremental value
+
+- TABLE
+    - Uses a separate database table to maintain and generate unique primary key values.
+    - Provides database independence.
+    - Generally slower compared to `IDENTITY` and `SEQUENCE`.
+        ```java
+        @Id
+        @GeneratedValue(strategy = GenerationType.TABLE)
+        private Long id;
+        ```
+    - This can be useful if our databases doesn't support sequence.
+    - Custome Table Sequence is as like
+        ```java
+        @GeneratedValue(strategy = GenerationType.TABLE, generator = "cat_gen")
+        @TableGenerator(
+                name = "cat_gen", 
+                table="id_gen",
+                pkColumnName = "gen_key",
+                valueColumnName = "gen_value",
+                pkColumnValue = "cat_id", allocationSize = 1
+        )
+        ```
+
+- NONE
+    - No automatic ID generation strategy is used.
+    - The application is responsible for assigning the primary key value.
+    ```java
+    @Id
+    private Long id;
+   ```
+- Summary
+
+    | Strategy | Description                              | Common Databases   |
+    | -------- | ---------------------------------------- | ------------------ |
+    | AUTO     | JPA chooses the strategy automatically   | Any                |
+    | IDENTITY | Uses auto-increment/identity columns     | MySQL, PostgreSQL  |
+    | SEQUENCE | Uses database sequences                  | Oracle, PostgreSQL |
+    | TABLE    | Uses a dedicated table for ID generation | Any                |
+    | NONE     | Manual ID assignment                     | Any                |
+
+
+### Defining JPA Repositories:
+- Like Controller, Services, we need **repositories** which will interact with databases.
+- In repositories package create **CategoryRepository** interface and it extends **JpaRepository** which will be used to interact with database and we don't need to write any queries as JpaRepository will give many methods like
+    - findAll
+    - getById
+    - save
+    - saveAll and so on
+- Actually JpaRepository (I) extends 
+    - ListCrudRepository (I) extends 
+        - CrudRepository (I) extends
+            - Repository (I)
+    - ListPagingAndSortingRepository (I) extends
+        - PagingAndSortingRepository (I) extends
+            - Repository (I)
+    - QueryByExampleExecutor (I)
+- CategoryRepository.java (I)
+    ```java 
+    package com.gomad.h2_jpa.repository;
+
+    import com.gomad.h2_jpa.model.Category;
+    import org.springframework.data.jpa.repository.JpaRepository;
+
+    public interface CategoryRepository extends JpaRepository<Category, Long> {
+    }
+   ```
+
+### Custom Query methods:
+- Now Category has Id and CategoryName, so by default we can find findById method but now if I want to create a repository method for categoryName, we can do but we need to follow the casing like findByCategoryName.
+- Now in CategoryRepository, we can add and code becomes like
+    ```java
+    public interface CategoryRepository extends JpaRepository<Category, Long> {
+        Category findByCategoryName(String categoryName);
+    }
+    ```
+- Now with this, JPA will automatically analyse the declaration and automatically implement on the fly. But we have to follow the naming convention [camel casing] like
+    - findByCategoryName 
+        - find + By [Means Select operation] 
+        - CategoryName [where condition and this field should be matched with field provided in Category class i.e categoryName]
+    - With this Spring data JPA will take care of everything and we don't need to write any SQL query.
+
+- So actually it can extends CrudRepository also but we extends **JpaRepository** because it will have more methods.
+- **JpaRepository** takes 2 params:
+    - Table Entity type, here it is Class type i.e Category class.
+    - Primary Key type, here it is data type i.e id dataType i.e Long
+
+- Now we use CategoryRepository 
+    - Before code
+        ```java
+        @Service
+        public class CategoryServiceImplementation implements CategoryService {
+        private final List<Category> categories = new ArrayList<>();
+        private long nextId = 1L;
+        }
+        ```
+    - After Code changes:
+        ```java
+        @Autowired
+        private CategoryRepository categoryRepository;
+        ```
+- Other changes are: 
+    ```java
+    //=====================[getAllCategories]============================//
+    @Override
+    public List<Category> getAllCategories() {
+        return categories;
+    }
+
+    // After
+    @Override
+    public List<Category> getAllCategories() {
+        return categoryRepository.findAll();
+    }
+
+    //=======================[createCategory]==========================//
+    @Override
+    public boolean createCategory(Category category) {
+        category.setId(nextId++);
+        return categories.add(category);
+    }
+
+    // After
+    @Override
+    public boolean createCategory(Category category) {
+        categoryRepository.save(category); // main step
+        return true;
+    }
+
+    //=======================[updateCategory]==========================//
+    @Override
+    public boolean updateCategory(Long id, Category category) {
+        Category cat = categories.stream()
+                .filter(c -> c.getId().equals(id))
+                .findFirst()
+                .orElse(null);
+        if (cat == null){
+              return false;
+        }
+
+        cat.setCategoryName(category.getCategoryName());
+        return true;
+    }
+
+    // After
+    @Override
+    public boolean updateCategory(Long id, Category category) {
+        if (!categoryRepository.existsById(id)) {
+            throw new ResponseStatusException(
+                    HttpStatus.NOT_FOUND,
+                    "Category not found");
+        }
+
+        category.setId(id);
+        categoryRepository.save(category);
+        return true;
+    }
+
+    //=======================[deleteCategory]==========================//
+    @Override
+    public boolean deleteCategory(Long id) {
+        Category category = categories.stream()
+                .filter(c -> c.getId().equals(id))
+                .findFirst()
+                .orElse(null);
+        if(category == null){
+            return false;
+        }
+        return categories.remove(category);
+    }
+
+    // After
+    @Override
+    public boolean deleteCategory(Long id) {
+       Category categoryToDelete = categoryRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Category not found"));
+
+        categoryRepository.delete(categoryToDelete);
+        return true;
+    }
+
+    //=======================[deleteCategory]==========================//
+    @Override
+    public Category getCategoryById(Long id) {
+        Optional<Category> optionalCategory = categories.stream()
+                .filter(c -> c.getId().equals(id))
+                .findFirst();
+        return optionalCategory.orElse(null);
+    }
+
+    // After
+    @Override
+    public Category getCategoryById(Long id) {
+        List<Category> categories = categoryRepository.findAll();
+            Optional<Category> optionalCategory = categories.stream()
+                    .filter(c -> c.getId().equals(id))
+                    .findFirst();
+        return optionalCategory.orElse(null);
+    }
+
+    // [OR]
+    @Override
+    public Category getCategoryById(Long id) {
+        return Optional.of(categoryRepository
+                            .findById(id)
+                            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Category not found")))
+                            .get();
+    }
+    ```
+
+### Validations in Springboot
+- Validations are all about ensuring the data your application receives meets certain criteria before it's processed.
+- Dependency needed is **Hibernate Validator**. but in spring we can use **spring-boot-starter-validation** which can do
+    - bean validation with **Hibernate Validator**.
+- Some validation annotations like:
+    - @NotNull
+    - @NotEmpty
+    - @Size(min=x, max=y)
+    - @Email
+    - @Min(value)
+    - @Max(value)
+- Some code example is:
+    ```java
+    import jakarta.validation.constraints.*
+
+    pulbic class Employee{
+
+        @NotEmpty(message = "Email can't be empty")
+        @Email(message = "Email should be valid")
+        private String email;
+
+        @NotEmpty(message = "Name can't be empty")
+        @Size(min=2, message="Name should have at least 2 characters")
+        private String name;
+
+        @Min(18, message = "Age should be greater than 18")
+        @Max(59, message="Age should be below 60")
+        @NotEmpty(message = "Age can't be empty")
+        private int age;
+    }
+    ```
+#### @Valid:
+- Code is:
+    ```java
+    @Entity(name = "categories")
+    @Data
+    public class Category {
+        // Update getter and setter to use Long wrapper
+        // 1. Change primitive long to wrapper Long object
+        @Id
+        @GeneratedValue(strategy = GenerationType.IDENTITY, generator = "category_seq")
+        private Long id;
+
+        @NotBlank
+        private String categoryName;
+    }
+    ```
+- So here @NotBlank is used. Now if I hit API with categoryName with empty value, it throws directly with 500 status code like below
+![alt text](images/NotBlank.png)
+    - but this is not correct, since it is incorrect data, we have to send 400 code and this can be done by **@Valid** annotation which has to pass at **controller** level like below:
+    ```java
+    @RestController
+    @RequestMapping("/category")
+    public class CategoryController {
+
+        // BEFORE CODE CHANGE
+        @PostMapping("/add")
+        public ResponseEntity<String> addCategory( @RequestBody Category category) {
+            
+            // Category addition logic
+        }
+
+        // AFTER CODE CHANGE
+        @PostMapping("/add")
+        public ResponseEntity<String> addCategory(
+            @Valid // <--@Valid is added here-->
+            @RequestBody Category category) {
+            
+            // Category addition logic
+        }
+    }
+    ```
+- Now after adding @Valid in controller it becomes like below i.e 400 status code is coming.
+![alt text](images/ValidAndNotBlank.png)
+
+
+### Exceptions
+#### Global Exception Handler:
+- In above example, 
+    ```java
+        public class Category {
+        // Update getter and setter to use Long wrapper
+        // 1. Change primitive long to wrapper Long object
+        @Id
+        @GeneratedValue(strategy = GenerationType.IDENTITY, generator = "category_seq")
+        private Long id;
+
+        @NotBlank(message = "Category name shouldn't be blank.")
+        @Size(min = 5, message = "Category name should be at least of size of 5 characters.")
+        private String categoryName;
+    }
+    ```
+- Now still we will get response
+    ```json
+        {
+        "timestamp": "2026-09-13T07:56:31.049Z",
+        "status": 400,
+        "error": "Bad Request",
+        "path": "/api/public/category/add"
+    }
+    ```
+    and on console we will get error and import points are: 
+- **MethodArgumentNotValidException** exception with 2 errors:
+    - **NotBlank** | default message [Category name shouldn't be blank.]
+    - **Size** | default message [Category name should be at least of size of 5 characters.]
+    
+- Now we can add **GlobalExceptionHandler** with annotation named **@RestControllerAdvice** which will intercept **RestController** APIs when some exception comes.
+- Code for Exception handler is as follows:
+    ```java
+    package com.gomad.h2_jpa.exceptions;
+
+    import org.springframework.http.HttpStatus;
+    import org.springframework.http.ResponseEntity;
+    import org.springframework.validation.FieldError;
+    import org.springframework.web.bind.MethodArgumentNotValidException;
+    import org.springframework.web.bind.annotation.ExceptionHandler;
+    import org.springframework.web.bind.annotation.RestControllerAdvice;
+
+    import java.util.HashMap;
+    import java.util.Map;
+
+    @RestControllerAdvice
+    public class MyGlobalExceptionHandler {
+
+        @ExceptionHandler(MethodArgumentNotValidException.class)
+        public ResponseEntity<Map<String, String>> myMethodArgumentNotValidException(MethodArgumentNotValidException e){
+            Map<String, String> errors = new HashMap<>();
+
+            e.getBindingResult().getAllErrors().forEach(err -> {
+                String key = ((FieldError)err).getField();
+                String msg = err.getDefaultMessage();
+
+                errors.put(key, msg);
+            });
+            return new ResponseEntity<>(errors, HttpStatus.BAD_REQUEST);
+        }
+    }
+    ```
+- Using **@ExceptionHandler(MethodArgumentNotValidException.class)** we can define like for which exception we can intercept.
+    - **@ExceptionHandler(Exception.class)** will intercept all exceptions. 
+- With above **GlobalExceptionHandler**, now we can get message like:
+    - For request body
+        - "categoryName": "", response is 
+            - "categoryName": "Category name shouldn't be blank."
+        - "categoryName": "a", response is 
+            - "categoryName": "Category name should be at least of size of 5 characters."
+
+#### Custom Exceptions:
+- In some places, we are using **ResponseStatusException** like:
+    ```java
+    @Override
+    public boolean deleteCategory(Long id) {
+        Category categoryToDelete = categoryRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Category not found"));
+
+        categoryRepository.delete(categoryToDelete);
+        return true;
+    }
+    ```
+- Using **ResponseStatusException** is straight forward but in production ready applications, we will use **Custom exceptions**.
+- Why consider Custom Exceptions anyway when ResponseStatusException is there?
+    - **Separation of concerns**: Custom exceptions can keep business logic layer clean from web layer constructs.
+    - **Consistency & Reusuability**: It makes easier to change the error handling behaviour from one place and making it a centralized place to maintain a standard procedure for throwing errors.
+    - **Detailer Error Information**: Custom exceptions give you the flexibility to include additional information [to debug] about the error [like as feedback] other than just error code and status.
+    - **Complex Error Handling Logic**: If our apps require some domain specific complex error handling logic to determine the error state, then custom exceptions can encapsulate the logic and it can make our service methods much cleaner, more focused on their primary responsibility.
+- Using Custom Exceptions with ResponseStatusException:
+    - **ResponseStatusException** for direct feedback: 
+        - to provide any detailed direct feedback via controller, we can use this. BUT
+    - **Define Custom Exceptions for Business logic**: But if we want customized exceptions for business logic, we make use of Custom Exceptions. SO FOR THAT
+    - **Handle Custom Exceptions in Controller Advice**: We can make use of **RestControllerAdvice**, a exception handler method to catch custom exceptions and convert them into relevant or appropriate HTTP responses along with status codes. This approach helps in maintaining Consistency.
+
+#### Some other Custom Exceptions:
+- **ResourceNotFoundException** exception: 
+    ```java
+    package com.gomad.h2_jpa.exceptions;
+
+    public class ResourceNotFoundException extends RuntimeException {
+
+        String resourceName;
+        String field;
+        String fieldName;
+        Long fieldId;
+        public ResourceNotFoundException(String resourceName, String field, String fieldName) {
+            super(String.format("%s does not have %s: %s", resourceName, fieldName, field));
+            this.resourceName = resourceName;
+            this.field = field;
+            this.fieldName = fieldName;
+        }
+
+        public ResourceNotFoundException(String resourceName, String field, Long fieldId) {
+            super(String.format("%s does not have %s: %d", resourceName, field, fieldId));
+            this.resourceName = resourceName;
+            this.field = field;
+            this.fieldId = fieldId;
+        }
+
+        public ResourceNotFoundException() {
+        }
+    }
+    ```
+- Wrapping it as method in **MyGlobalExceptionHandler** class
+    ```java
+    @ExceptionHandler(ResourceNotFoundException.class)
+    public ResponseEntity<String> myResourceNotFoundException(ResourceNotFoundException e){
+        return new ResponseEntity<>(e.getMessage(), HttpStatus.NOT_FOUND);
+    }
+    ```
+
+- Using it in project as: 
+    ```java
+    public boolean deleteCategory(Long id) {
+        Category categoryToDelete = categoryRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Category", "CategoryId", id));
+
+        categoryRepository.delete(categoryToDelete);
+        return true;
+    }
+    ```
+- Now at any point, if you want to throw, we can throw like object instantiation.
+    - new ResourceNotFoundException("Category", "CategoryId", id)
+- Now since ResourceNotFoundException extends RunTimeException, it will get intercepted by **MyGlobalExceptionHandler**. 
+
+- **APIException** Exception:
+- We can use this like a generic one.
+    ```java
+    package com.gomad.h2_jpa.exceptions;
+
+    public class APIException extends RuntimeException {
+        private final static  long serialVersionUID = 1L;
+
+        public APIException(String message) {
+            super(message);
+        }
+        public APIException(String message, Throwable cause) {
+
+        }
+    }
+    ```
+- Wrapping it as method in **MyGlobalExceptionHandler** class
+    ```java
+    @ExceptionHandler(APIException.class)
+    public ResponseEntity<String> myAPIException(APIException e){
+        return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);
+    }
+    ```
+
+- Using it in project as: 
+    ```java
+    @Override
+    public List<Category> getAllCategories() {
+        List<Category> categories = categoryRepository.findAll();
+        if(categories.isEmpty()){
+            throw new APIException("No categories found");
+        }
+        return categories;
+    }
+
+    @Override
+    public boolean createCategory(Category category) {
+        Category existingCategory = categoryRepository.findByCategoryName(category.getCategoryName());
+        if(existingCategory != null){
+            new APIException("Category with name " + category.getCategoryName() + " already exists !!!");
+        }
+        categoryRepository.save(category);
+        return true;
+    }
+    ```
+- Now at any point, if you want to throw, we can throw like object instantiation.
+    - throw new APIException("Category with name " + category.getCategoryName() + " already exists !!!");
+    - throw new APIException("No categories found");
+- Now since APIException extends RunTimeException, it will get intercepted by **MyGlobalExceptionHandler**. 
+
+
+
+### Pagination:
+- Request elements be like 
+    - page=1&limit=10
+- It contains some key response elements like:
+    ```json
+    {
+        "pageNumber": 0,
+        "pageSize": 50,
+        "totalElements": 11,
+        "totalPages": 1,
+        "lastPage": true
+    }
+    ```
+- So for page=1&limit=10, response will be like
+    ```json
+    {
+        "content": [
+            {
+                "id": 1,
+                "title": "sunt aut facere repellat provident occaecati excepturi optio reprehenderit",
+                "body": "quia et suscipit\nsuscipit recusandae consequuntur expedita et cum\nreprehenderit molestiae ut ut quas totam\nnostrum rerum est autem sunt rem eveniet architecto"
+            },
+            .........
+            {
+                "id": 10,
+                "title": "optio molestias id quia eum",
+                "body": "quo et expedita modi cum officia vel magni\ndoloribus qui repudiandae\nvero nisi sit\nquos veniam quod sed accusamus veritatis error"
+            }
+        ],
+        "pageNumber": 0,
+        "pageSize": 10,
+        "totalElements": 1000,
+        "totalPages": 100,
+        "lastPage": false
+    }
+    ```
+
+### Custom Responses:
+- Custom responses/ Custom objects is like a package of data that you create specifically for your end users.
+- This is done by DTOs [Data Transfer Objects]
+
+### DTOs [Data Transfer Objects]
+- DTO is a designed pattern used to transfer data between software application & sub-systems.
+- These are light weight representation of original class objects.
+- Entire process looks like:
+    - [Category] ==> [Data Transfer Object (DTO)] ==> [JSON]
+- DTOs is like a custom object that we have to send as a response to API consumers. 
+- Benefits of using DTOs are:
+    - They allow to tailor the data i.e if we don't want some fields [like password], we can control that.
+    - Using this now we can decouple model from response.
+- Entire flow of data packet from request to response in form of DTO is as follows:
+![alt text](images/DTOFlow.png)
+- ##### Implementing DTO Pattern
+    - create payload package:
+        - for request dtos, create **CategoryDTO** class:
+            ```java
+            package com.gomad.h2_jpa.payload;
+
+            import lombok.*;
+
+            @Data
+            @NoArgsConstructor
+            @AllArgsConstructor
+            public class CategoryDTO {
+                private Long id;
+                private String categoryName;
+            }
+            ```
+        - for response dtos, create **CategoryResponse** class:
+            ```java
+            package com.gomad.h2_jpa.payload;
+
+            import lombok.*;
+
+            @Data
+            @AllArgsConstructor
+            @NoArgsConstructor
+            public class CategoryResponse {
+                private List<CategoryDTO> categories;
+            }
+            ```
+        
+        - In CategoryService.java:
+            ```java
+            public interface CategoryService {
+
+            // before:
+            List<Category> getAllCategories();
+
+            // After DTO
+            CategoryResponse getAllCategories();
+            }
+            ```
+        - Now in CategoryImplementation.java
+            ```java
+
+            public class CategoryServiceImplementation implements CategoryService {
+
+                // Before
+                @Override
+                public List<Category> getAllCategories() {
+                    List<Category> categories = categoryRepository.findAll();
+                    if(categories.isEmpty()){
+                        throw new APIException("No categories found");
+                    }
+                    return categories;
+                }
+
+
+                // After
+
+                @Autowired
+                private CategoryRepository categoryRepository;
+
+                @Override
+                public CategoryResponse getAllCategories() {
+                    List<Category> categories = categoryRepository.findAll();
+                    if(categories.isEmpty()){
+                        throw new APIException("No categories found");
+                    }
+                    return categories;
+                }
+            }
+            ```
+        - **return categories;** will be error because return type is not **CategoryResponse**, in this case, typecasting is not the solution, for this **Model Mapping** is used.
+- ##### Model Mapping
+    - ModelMapper analyzes your object model to intelligently determine how data should be mapped. There's no manual mapping needed. 
+    - ModelMapper does most of the work for you, automatically projecting and flattening complex models.
+    - Dependency needed is **modelmapper**.
+        ```java
+        package com.gomad.h2_jpa.config;
+
+        import org.modelmapper.ModelMapper;
+        import org.springframework.context.annotation.Bean;
+        import org.springframework.context.annotation.Configuration;
+
+        @Configuration
+        public class AppConfig {
+            
+            @Bean
+            public ModelMapper modelMapper(){
+                return new ModelMapper();
+            }
+        }
+        ```
+    - So now CategoryImplementation.java becomes like:
+        ```java
+        @Service
+        public class CategoryServiceImplementation implements CategoryService {
+
+            @Autowired
+            private CategoryRepository categoryRepository;
+
+            @Autowired
+            private ModelMapper modelMapper;
+
+            @Override
+            public CategoryResponse getAllCategories() {
+                List<Category> categories = categoryRepository.findAll();
+                if(categories.isEmpty()){
+                    throw new APIException("No categories found");
+                }
+
+                List<CategoryDTO> categoryDTOS = categories.stream()
+                        .map(category -> modelMapper.map(category, CategoryDTO.class))
+                        .toList();
+
+                CategoryResponse categoryResponse = new CategoryResponse();
+                categoryResponse.setCategories(categoryDTOS);
+                return categoryResponse;
+            }
+        }
+    - So now controller becomes:
+        ```java
+
+        // Before 
+        @RequestMapping(value = "/all", method = RequestMethod.GET)
+        public ResponseEntity<List<Category>> getCategories(){
+            return ResponseEntity.ok().body(categoryService.getAllCategories());
+        }
+
+        // After
+        @RequestMapping(value = "/all", method = RequestMethod.GET)
+        public ResponseEntity<CategoryResponse> getCategories(){
+            return ResponseEntity.ok().body(categoryService.getAllCategories());
+        }
+        ```
+    - Now response becomes like:
+        - {{baseurl}}/category/all
+            ```json
+            {
+                "categories": [
+                    {
+                        "id": 1,
+                        "categoryName": "Vegetables"
+                    },
+                    {
+                        "id": 2,
+                        "categoryName": "Fruits"
+                    }
+                ]
+            }
+            ```
+    -   CategoryService:
+        ```java 
+        CategoryDTO createCategory(CategoryDTO categoryDTO);
+        ```
+    -   CategoryServiceImplementation
+        ```java
+        @Override
+        public CategoryDTO createCategory(CategoryDTO categoryDTO) {
+            Category category = modelMapper.map(categoryDTO, Category.class);   // mapping DTO to Model
+            CategoryDTO existingCategory = categoryRepository.findByCategoryName(categoryDTO.getCategoryName());
+            if(existingCategory != null){
+                throw new APIException("Category with name " + categoryDTO.getCategoryName() + " already exists !!!");
+            }
+            // In case we want to return DTO then
+            Category savedCategory = categoryRepository.save(category);
+            return modelMapper.map(savedCategory, CategoryDTO.class);  // mapping Model to DTO.
+        }
+        ```
+    - CategoryController
+        ```java
+        @PostMapping("/add")
+        public ResponseEntity<CategoryDTO> addCategory(@Valid @RequestBody CategoryDTO categoryDTO) {
+            CategoryDTO savedCategoryDTO = categoryService.createCategory(categoryDTO);
+            return new ResponseEntity<>(savedCategoryDTO, HttpStatus.CREATED);
+        }
+        ```
+
+### Pagination:
+- We can directly query for pagination but for that we need some setup.
+- Previously we used to fetch all the categories using **findAll()**.
+    ```java
+    List<Category> categories = categoryRepository.findAll();
+    ```
+- Now there is a interface named **Pageable** provided by **import org.springframework.data.domain**.
+    - **Pageable** is an interface and is implemented by **PageRequest** and it has static method **of**.
+    - Now Page is there to handle Generic page data and here it is Category.
+    ```java
+    Pageable pageable = PageRequest.of(pageNumber, pageSize);
+    Page<Category> categoryPage = categoryRepository.findAll(pageable);
+    List<Category> categories = categoryPage.getContent();
+    ```
+- for **/category?pageNumber=0&pageSize=3**
+    ```json
+        {
+        "categories": [
+            {
+                "id": 1,
+                "categoryName": "Fruits"
+            },
+            {
+                "id": 2,
+                "categoryName": "Fruits1"
+            },
+            {
+                "id": 3,
+                "categoryName": "Fruits2"
+            }
+        ]
+    }
+    ```
+- for **/category?pageNumber=0&pageSize=1**
+    ```json
+        {
+        "categories": [
+            {
+                "id": 2,
+                "categoryName": "Fruits1"
+            }
+        ]
+    }
+    ```
+- Note: PageNumber starts with 0.
