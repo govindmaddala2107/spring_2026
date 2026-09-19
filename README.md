@@ -1889,9 +1889,104 @@
         }
     - So now controller becomes:
         ```java
+
+        // Before 
+        @RequestMapping(value = "/all", method = RequestMethod.GET)
+        public ResponseEntity<List<Category>> getCategories(){
+            return ResponseEntity.ok().body(categoryService.getAllCategories());
+        }
+
+        // After
         @RequestMapping(value = "/all", method = RequestMethod.GET)
         public ResponseEntity<CategoryResponse> getCategories(){
             return ResponseEntity.ok().body(categoryService.getAllCategories());
         }
         ```
+    - Now response becomes like:
+        - {{baseurl}}/category/all
+            ```json
+            {
+                "categories": [
+                    {
+                        "id": 1,
+                        "categoryName": "Vegetables"
+                    },
+                    {
+                        "id": 2,
+                        "categoryName": "Fruits"
+                    }
+                ]
+            }
+            ```
+    -   CategoryService:
+        ```java 
+        CategoryDTO createCategory(CategoryDTO categoryDTO);
+        ```
+    -   CategoryServiceImplementation
+        ```java
+        @Override
+        public CategoryDTO createCategory(CategoryDTO categoryDTO) {
+            Category category = modelMapper.map(categoryDTO, Category.class);   // mapping DTO to Model
+            CategoryDTO existingCategory = categoryRepository.findByCategoryName(categoryDTO.getCategoryName());
+            if(existingCategory != null){
+                throw new APIException("Category with name " + categoryDTO.getCategoryName() + " already exists !!!");
+            }
+            // In case we want to return DTO then
+            Category savedCategory = categoryRepository.save(category);
+            return modelMapper.map(savedCategory, CategoryDTO.class);  // mapping Model to DTO.
+        }
+        ```
+    - CategoryController
+        ```java
+        @PostMapping("/add")
+        public ResponseEntity<CategoryDTO> addCategory(@Valid @RequestBody CategoryDTO categoryDTO) {
+            CategoryDTO savedCategoryDTO = categoryService.createCategory(categoryDTO);
+            return new ResponseEntity<>(savedCategoryDTO, HttpStatus.CREATED);
+        }
+        ```
 
+### Pagination:
+- We can directly query for pagination but for that we need some setup.
+- Previously we used to fetch all the categories using **findAll()**.
+    ```java
+    List<Category> categories = categoryRepository.findAll();
+    ```
+- Now there is a interface named **Pageable** provided by **import org.springframework.data.domain**.
+    - **Pageable** is an interface and is implemented by **PageRequest** and it has static method **of**.
+    - Now Page is there to handle Generic page data and here it is Category.
+    ```java
+    Pageable pageable = PageRequest.of(pageNumber, pageSize);
+    Page<Category> categoryPage = categoryRepository.findAll(pageable);
+    List<Category> categories = categoryPage.getContent();
+    ```
+- for **/category?pageNumber=0&pageSize=3**
+    ```json
+        {
+        "categories": [
+            {
+                "id": 1,
+                "categoryName": "Fruits"
+            },
+            {
+                "id": 2,
+                "categoryName": "Fruits1"
+            },
+            {
+                "id": 3,
+                "categoryName": "Fruits2"
+            }
+        ]
+    }
+    ```
+- for **/category?pageNumber=0&pageSize=1**
+    ```json
+        {
+        "categories": [
+            {
+                "id": 2,
+                "categoryName": "Fruits1"
+            }
+        ]
+    }
+    ```
+- Note: PageNumber starts with 0.
