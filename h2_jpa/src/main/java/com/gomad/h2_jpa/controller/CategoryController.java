@@ -1,5 +1,6 @@
 package com.gomad.h2_jpa.controller;
 
+import com.gomad.h2_jpa.config.AppConstants;
 import com.gomad.h2_jpa.payload.CategoryDTO;
 import com.gomad.h2_jpa.payload.CategoryResponse;
 import com.gomad.h2_jpa.service.CategoryService;
@@ -22,8 +23,11 @@ public class CategoryController {
     }
 
     @GetMapping
-    public ResponseEntity<CategoryResponse> getAllCategoriesPagination(@RequestParam Integer pageNumber, Integer pageSize){
-        return ResponseEntity.ok().body(categoryService.getAllCategoriesPagination(pageNumber, pageSize));
+    public ResponseEntity<CategoryResponse> getAllCategoriesPagination(@RequestParam(defaultValue = AppConstants.PAGE_NUMBER, required = false) Integer pageNumber,@RequestParam(defaultValue = AppConstants.PAGE_SIZE, required = false) Integer pageSize,
+                                                                       @RequestParam(defaultValue = AppConstants.SORT_CATEGORY_BY, required = false) String sortBy,
+                                                                       @RequestParam(defaultValue = AppConstants.SORT_DIR, required = false) String sortOrder
+                                                                       ){
+        return ResponseEntity.ok().body(categoryService.getAllCategoriesPagination(pageNumber, pageSize, sortBy, sortOrder));
     }
 
     @GetMapping("/{id}")

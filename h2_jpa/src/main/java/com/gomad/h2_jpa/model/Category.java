@@ -6,7 +6,7 @@ import jakarta.validation.constraints.Size;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-@Entity(name = "categories")
+@Entity(name = "category")
 @Data
 public class Category {
     // Update getter and setter to use Long wrapper

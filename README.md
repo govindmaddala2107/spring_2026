@@ -1990,3 +1990,200 @@
     }
     ```
 - Note: PageNumber starts with 0.
+- #### Default values.
+    - If user don't provide pageNumber and pageSize, yet we can disperse data by keeping some default values.
+    - Create **AppConstants** in config.
+        ```java
+        package com.gomad.h2_jpa.config;
+
+        public class AppConstants {
+            public static final String PAGE_NUMBER = "0";
+            public static final String PAGE_SIZE = "10";
+            public static final String SORT_CATEGORY_BY = "id";
+            public static final String SORT_DIR = "asc";
+        }
+        ```
+    - Now even if user hits **/category**, it is as same as **/category?pageNumber=0&pageSize=10**
+- #### Pagination details:
+    - along with content, we need to share page details like 
+        ```json
+        "pageNumber": 0,
+        "pageSize": 50,
+        "totalElements": 11,
+        "totalPages": 1,
+        "lastPage": true
+        ```
+    - Now in **CategoryResponse**, change 
+        ```java
+        @Data
+        @AllArgsConstructor
+        @NoArgsConstructor
+        public class CategoryResponse {
+            private List<CategoryDTO> categories;
+            private Integer pageNumber;
+            private Integer pageSize;
+            private Long totalElements;
+            private Integer totalPages;
+            private boolean lastPage;
+        }
+        ```
+    - Now in CategoryImplementation, previously we have created page, using that we can extract corresponding data. Code is
+        ```java
+        @Override
+        public CategoryResponse getAllCategoriesPagination(Integer pageNumber, Integer pageSize) {
+
+            Pageable pageable = PageRequest.of(pageNumber, pageSize);
+            Page<Category> categoryPage = categoryRepository.findAll(pageable);
+            List<Category> categories = categoryPage.getContent();
+
+            List<CategoryDTO> categoryDTOS = categories.stream()
+                    .map(category -> modelMapper.map(category, CategoryDTO.class))
+                    .toList();
+
+            CategoryResponse categoryResponse = new CategoryResponse();
+            categoryResponse.setCategories(categoryDTOS);
+            categoryResponse.setPageNumber(categoryPage.getNumber());
+            categoryResponse.setPageSize(categoryPage.getSize());
+            categoryResponse.setTotalElements(categoryPage.getTotalElements());
+            categoryResponse.setTotalPages(categoryPage.getTotalPages());
+            categoryResponse.setLastPage(categoryPage.isLast());
+
+            return categoryResponse;
+        }
+        ```
+    - Here categoryPage has all the required details.
+    - for **/category?pageNumber=0&pageSize=2**, response is
+        ```json
+        {
+            "categories": [
+                {
+                    "id": 1,
+                    "categoryName": "Electronics"
+                },
+                {
+                    "id": 2,
+                    "categoryName": "Home Appliances"
+                }
+            ],
+            "pageNumber": 0,
+            "pageSize": 2,
+            "totalElements": 100,
+            "totalPages": 50,
+            "lastPage": false
+        }
+        ```
+- #### Sorting By and Sorting Order:
+    - We can sort by field names and order by ascending [asc] or descending [desc] order.
+    - Page provides for ordering and sorting and code changes are:
+        ```java
+        @Override
+        public CategoryResponse getAllCategoriesPagination(Integer pageNumber, Integer pageSize, String sortBy, String sortOrder) {
+            Sort sortByAndOrder = sortOrder.equalsIgnoreCase("asc") ?
+                    Sort.by(sortBy).ascending()
+                    : Sort.by(sortBy).descending();
+
+            Pageable pageable = PageRequest.of(pageNumber, pageSize, sortByAndOrder);
+
+            // other code changes 
+        }
+        ```
+    - Now for ascending order: **/category?pageNumber=0&pageSize=2&sortOrder=asc**
+        ```json
+        {
+            "categories": [
+                {
+                    "id": 1,
+                    "categoryName": "Electronics"
+                },
+                {
+                    "id": 2,
+                    "categoryName": "Home Appliances"
+                }
+            ],
+            "pageNumber": 0,
+            "pageSize": 2,
+            "totalElements": 100,
+            "totalPages": 50,
+            "lastPage": false
+        }
+        ```
+    - Now for descending order: **/category?pageNumber=0&pageSize=2&sortOrder=desc**
+        ```json
+        {
+            "categories": [
+                {
+                    "id": 100,
+                    "categoryName": "Cleaning Supplies"
+                },
+                {
+                    "id": 99,
+                    "categoryName": "Mattresses"
+                }
+            ],
+            "pageNumber": 0,
+            "pageSize": 2,
+            "totalElements": 100,
+            "totalPages": 50,
+            "lastPage": false
+        }
+        ```
+
+#### API Response:
+- Currently if I delete category with some id and if that id not exists we are sending **string** message like for **/category/6**
+    - Category does not have CategoryId: 6
+- If we want to send it like JSON, create some central class like 
+    ```java
+    package com.gomad.h2_jpa.payload;
+
+    import lombok.*;
+
+    @Data
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public class ApiResponse {
+
+        private String message;
+        private boolean status;
+    }
+    ```
+- Now in becomes like
+    ```java
+
+    // Before
+    @ExceptionHandler(ResourceNotFoundException.class)
+    public ResponseEntity<String> myResourceNotFoundException(ResourceNotFoundException e){
+        return new ResponseEntity<>(e.getMessage(), HttpStatus.NOT_FOUND);
+    }
+
+    // After
+    @ExceptionHandler(ResourceNotFoundException.class)
+    public ResponseEntity<ApiResponse> myResourceNotFoundException(ResourceNotFoundException e){
+        ApiResponse apiResponse = new ApiResponse(e.getMessage(), false);
+        return new ResponseEntity<>(apiResponse, HttpStatus.NOT_FOUND);
+    }
+
+    // Before
+    @ExceptionHandler(APIException.class)
+    public ResponseEntity<String> myAPIException(APIException e){
+        return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);
+    }
+
+    // After
+    @ExceptionHandler(APIException.class)
+    public ResponseEntity<ApiResponse> myAPIException(APIException e){
+        ApiResponse apiResponse = new ApiResponse(e.getMessage(), false);
+        return new ResponseEntity<>(apiResponse, HttpStatus.BAD_REQUEST);
+    }
+    ```
+- Responses now for **/category/6**
+    ```json
+
+    // before:
+    Category does not have CategoryId: 6
+
+    // After
+    {
+        "message": "Category does not have CategoryId: 6",
+        "status": false
+    }
+    ```
