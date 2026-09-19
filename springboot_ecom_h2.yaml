@@ -1,0 +1,160 @@
+type: collection.insomnia.rest/5.0
+schema_version: "5.1"
+name: Springboot_eCom_h2
+meta:
+  id: wrk_c1fb1e18969945a0806c385445e8b40f
+  created: 1789232979952
+  modified: 1789232979952
+  description: ""
+collection:
+  - url: "{{baseurl}}/category/all"
+    name: AllCategories
+    meta:
+      id: req_0003d0c16f024f97884d7fbb6bfcd544
+      created: 1789232986790
+      modified: 1789798035377
+      isPrivate: false
+      description: ""
+      sortKey: -1789232986790
+    method: GET
+    settings:
+      renderRequestBody: true
+      encodeUrl: true
+      followRedirects: global
+      cookies:
+        send: true
+        store: true
+      rebuildPath: true
+  - url: "{{baseurl}}/category/1"
+    name: GetCategoryById
+    meta:
+      id: req_eaa77cc362204529985ebe6162e312e4
+      created: 1789270450134
+      modified: 1789270509236
+      isPrivate: false
+      description: ""
+      sortKey: -1789270450134
+    method: GET
+    settings:
+      renderRequestBody: true
+      encodeUrl: true
+      followRedirects: global
+      cookies:
+        send: true
+        store: true
+      rebuildPath: true
+  - url: "{{baseurl}}/category/add"
+    name: AddCategories
+    meta:
+      id: req_31a978f4f45c4ab4a6178ed9118e8b7d
+      created: 1789270545139
+      modified: 1789823899071
+      isPrivate: false
+      description: ""
+      sortKey: -1789270545139
+    method: POST
+    body:
+      mimeType: application/json
+      text: |-
+        {
+        	"categoryName": "Fruits5"
+        }
+    headers:
+      - name: Content-Type
+        value: application/json
+    settings:
+      renderRequestBody: true
+      encodeUrl: true
+      followRedirects: global
+      cookies:
+        send: true
+        store: true
+      rebuildPath: true
+  - url: "{{baseurl}}/category/1"
+    name: UpdateCategory
+    meta:
+      id: req_d88f47f62c204d09970f51235fd3fde5
+      created: 1789270724196
+      modified: 1789799575529
+      isPrivate: false
+      description: ""
+      sortKey: -1789270724196
+    method: PUT
+    body:
+      mimeType: application/json
+      text: |-
+        {
+        	"categoryName": "Fruits updated"
+        }
+    headers:
+      - name: Content-Type
+        value: application/json
+    settings:
+      renderRequestBody: true
+      encodeUrl: true
+      followRedirects: global
+      cookies:
+        send: true
+        store: true
+      rebuildPath: true
+  - url: "{{baseurl}}/category/1"
+    name: DeleteCategory
+    meta:
+      id: req_ced0d74511544b7eb4e5f216dc3445a2
+      created: 1789270773396
+      modified: 1789800110939
+      isPrivate: false
+      description: ""
+      sortKey: -1789270773396
+    method: DELETE
+    settings:
+      renderRequestBody: true
+      encodeUrl: true
+      followRedirects: global
+      cookies:
+        send: true
+        store: true
+      rebuildPath: true
+  - url: "{{baseurl}}/category?pageNumber=1&pageSize=1"
+    name: GetCategoriesByPagination
+    meta:
+      id: req_9b2bfa733c004a1da2d091d3881dd9ac
+      created: 1789804097180
+      modified: 1789823939576
+      isPrivate: false
+      description: ""
+      sortKey: -1789232986740
+    method: GET
+    settings:
+      renderRequestBody: true
+      encodeUrl: true
+      followRedirects: global
+      cookies:
+        send: true
+        store: true
+      rebuildPath: true
+cookieJar:
+  name: Default Jar
+  meta:
+    id: jar_f69e308b92a1a838a323932a8a877c0eff3a1062
+    created: 1789232979984
+    modified: 1789232979984
+environments:
+  name: Base Environment
+  meta:
+    id: env_f69e308b92a1a838a323932a8a877c0eff3a1062
+    created: 1789232979981
+    modified: 1789233001485
+    isPrivate: false
+  data:
+    "": ""
+  subEnvironments:
+    - name: h2
+      meta:
+        id: env_b88e274b019842608c86476202ee8924
+        created: 1789233030144
+        modified: 1789270312333
+        isPrivate: false
+        sortKey: 1789233030144
+      data:
+        baseurl: http://localhost:8080/api/public
