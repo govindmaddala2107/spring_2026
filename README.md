@@ -2187,3 +2187,48 @@
         "status": false
     }
     ```
+
+### Multiple Entities
+
+- ##### JPA & Relationships:
+    - An entity represents a table in database.
+    - Each instance of an entity corresponds to a row in that table.
+    - Relationships in JPA define how entities are related to each other.
+    - JPA allows you to map those relationships using annotations in java code.
+    - Example: If you have a table for storing info about books, each book object would be a row.
+- ##### Relationships:
+    - One to One
+    - One to Many (or) Many to One
+    - Many to Many
+    - ###### One to One Relationship:
+        - It is atype of relationship where in one record in a table is related to exactly one more record in another table and vice versa.
+        - Example: 
+            - One Employee and One Salary Account
+                [Employee] ===> [Salary Account]
+            - One Person and One Passport
+                [Person] ===> [Passport]
+    - ###### One to Many Relationship:
+        - In this relationship, one record in one table has one or many related records in another table.
+        - Example:
+            - One Customer and Multiple Orders.
+                [Customer] ===> [Orders]
+            - One User and Multiple Bank Accounts.
+                [User] ===> [Bank Accounts]
+    - ###### Many to Many Relationships:
+        - In this relationship, one record in one table has many  related records in another table.
+        - Example:
+            - One Customer can order Multiple Products and One Product Can be Ordered by Many Customers.
+                [Customer(s)] <===> [Product(s)]
+            - Courses and Students.
+                [Course(s)] <===> [Student(s)]
+    - Directionality in Relationships:
+        - Unidirectional Relationship.
+        - Bidirectional Relationship.
+    - ###### Unidirectional Relationship.
+        - In this relationship, when only one entity knows about the relationship.
+        - For example, 2 entities Customer and Orders and if unidirectional relationship established between these terms from Customer to Orders, then in database terms, it also means:
+            - you can navigate from one entity to another, but not from the other way around.
+    - ###### Bidirectional Relationship.
+        - In this relationship, where both the entities are aware of each other that relationship exists.
+        - Example: Again Order and Order details entities. In database terms you can navigate the relationship from either of the entities.
+
