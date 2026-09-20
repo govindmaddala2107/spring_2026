@@ -2231,4 +2231,161 @@
     - ###### Bidirectional Relationship.
         - In this relationship, where both the entities are aware of each other that relationship exists.
         - Example: Again Order and Order details entities. In database terms you can navigate the relationship from either of the entities.
+- ##### One to One Coding:
+    - Here we setup SocialUser to SocialProfile.
+    - SocialUser:
+        ```java
+        package com.gomad.social_media.models;
 
+        @Entity
+        public class SocialUser {
+
+            @Id
+            @GeneratedValue(strategy = GenerationType.IDENTITY)
+            private Long id;
+        }
+        ```
+    - SocialProfile
+        ```java
+        package com.gomad.social_media.models;
+
+        @Entity
+        public class SocialProfile {
+
+            @Id
+            @GeneratedValue(strategy = GenerationType.IDENTITY)
+            private Long id;
+
+            @OneToOne
+            private SocialUser user;
+        }
+        ```
+    - Here using **@OneToOne**, we have established One-to-One relationship between SocialUser and SocialProfile.
+        ![alt text](images/One2OneBasic.png)
+    - Here SOCIAL_PROFILE has
+        - ID [of SOCIAL_PROFILE]
+        - USER_ID [acts as foreign key for SOCIAL_USER] and this we can control using **JoinColumn**.
+    - Code change is:
+        ```java
+        @OneToOne
+        @JoinColumn(name = "social_user")
+        private SocialUser user;
+        ```
+        ![alt text](images/One2OneJoinColumn.png)
+    - Now **USER_ID** changed to **SOCIAL_USER** corresponding to **social_user** given in **JoinColumn**.
+    - ###### Bi-Directional in One-to-One relationship.
+        - Add below code in SocialUser and create one-to-one with SocialProfile
+            ```java
+            @OneToOne
+            @JoinColumn(name = "social_profile")
+            private SocialProfile socialProfile;
+            ```
+            ![alt text](images/One2OneBiDirectional.png)
+        - Issue: Now each table has one foreign key to another. Issue is there are redundant foreign key columns. And both the entities are managing the relationship independently and there could be confusion when working with this data as queries might get error prone as to which foreign key to use.
+            - SO here we have to make any one as owner and here we make **SocialUser** as owner. Code changes are:
+                ```java
+                // In SocialProfile:
+                @OneToOne(mappedBy = "socialProfile")
+                // @JoinColumn(name = "social_user")
+                private SocialUser user;
+
+                // In SocialUser: No Code Changes
+                @OneToOne
+                @JoinColumn(name = "social_profile")
+                private SocialProfile socialProfile;
+                ```
+            - So in SocialProfile:
+                - **mappedBy = "socialProfile"** is added and this **socialProfile** should be as same as **private SocialProfile socialProfile;**
+                - Remove **JoinColumn** since no foreign key will come in SocialProfile.
+                ![alt text](images/One2OneBiDirectionalWithOneForeignKeyUserOwner.png)
+                - Now no **foreign key** in Social_Profile.
+            - If you want no foreign key in SocialUser, then changes are:
+                ```java
+                // In SocialProfile: No Code Changes
+                @OneToOne
+                @JoinColumn(name = "social_user")
+                private SocialUser user;
+
+                // In SocialUser: All Changes here only
+                @OneToOne(mappedBy = "user")
+                // @JoinColumn(name = "social_profile")
+                private SocialProfile socialProfile;
+                ```
+                ![alt text](images/One2OneBiDirectionalWithOneForeignKeyProfileOwner.png)
+
+
+
+
+
+- ##### One to Many & Many to One Relationships:
+    - [User] ===> [Posts]
+    - Coding part is:
+    - Post.java
+        ```java
+        package com.gomad.social_media.models;
+
+        @Entity
+        public class Post {
+
+            @Id
+            @GeneratedValue(strategy = GenerationType.IDENTITY)
+            private Long id;
+        }
+        ```
+    - SocialUser.java
+        ```java
+        package com.gomad.social_media.models;
+
+        import jakarta.persistence.*;
+
+        import java.util.ArrayList;
+        import java.util.List;
+
+        @Entity
+        public class SocialUser {
+
+            @Id
+            @GeneratedValue(strategy = GenerationType.IDENTITY)
+            private Long id;
+
+            @OneToOne(mappedBy = "user")
+            private SocialProfile socialProfile;
+
+            @OneToMany
+            private List<Post> posts = new ArrayList<>();
+        }
+        ```
+        ![alt text](images/OneToManyBasicOne.png)
+    - It creates some extra table **SOCIAL_USER_POSTS** is created automatically with columns: 
+        - POSTS_ID [a foreign key linking to posts]
+        - SOCIAL_USER_ID [a foreign key linking yo social user]
+        - This table is having foreign key relationship to the post as well as to user over here.
+        - This extra table can be removed by making either Post or SocialUser as owner.
+    - Code change:
+        ```java
+        // SocialUser.java
+        @Entity
+        public class SocialUser {
+
+            @OneToMany(mappedBy = "socialUser")
+            private List<Post> posts = new ArrayList<>();
+        
+        }
+
+        // Post.java
+        @Entity
+        public class Post {
+
+            @Id
+            @GeneratedValue(strategy = GenerationType.IDENTITY)
+            private Long id;
+
+            @ManyToOne // Means Many Posts mapped to one SocialUser
+            @JoinColumn(name = "user_id")
+            private SocialUser socialUser;
+        }
+        ```
+    - Now that extra table is removed like as in image:
+        ![alt text](images/OneToManyWithNoExtraTable.png)
+        - Image understanding: One User, with user_id, posts a post, with post_id and it have user_id, which again tracks back to User only.
+    - With this, system can know how many posts a user has done and which post is being done by which user. So it is a **bidirectional relationship**. 
