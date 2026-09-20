@@ -1,0 +1,319 @@
+type: collection.insomnia.rest/5.0
+schema_version: "5.1"
+name: BasicProjectEcom
+meta:
+  id: wrk_b75254be0783405f950dbe61402735dd
+  created: 1789824390474
+  modified: 1789824390474
+  description: ""
+collection:
+  - url: "{{baseurl}}/category/all"
+    name: GetAllCategories
+    meta:
+      id: req_4b7558fbdad64089a3ee94555cefbd9d
+      created: 1789824406478
+      modified: 1789824644204
+      isPrivate: false
+      description: ""
+      sortKey: -1789824406478
+    method: GET
+    settings:
+      renderRequestBody: true
+      encodeUrl: true
+      followRedirects: global
+      cookies:
+        send: true
+        store: true
+      rebuildPath: true
+  - url: "{{baseurl}}/category?pageNumber=0&pageSize=2&sortOrder=desc"
+    name: GetCategoriesByPagination
+    meta:
+      id: req_e993bf73a1e342d78f16baf7a692070a
+      created: 1789824550108
+      modified: 1789828288381
+      isPrivate: false
+      description: ""
+      sortKey: -1789824550108
+    method: GET
+    settings:
+      renderRequestBody: true
+      encodeUrl: true
+      followRedirects: global
+      cookies:
+        send: true
+        store: true
+      rebuildPath: true
+  - url: "{{baseurl}}/category/1"
+    name: GetCategoryById
+    meta:
+      id: req_627c67e96dea46b292e799a86d91705d
+      created: 1789824645521
+      modified: 1789824660727
+      isPrivate: false
+      description: ""
+      sortKey: -1789824645521
+    method: GET
+    settings:
+      renderRequestBody: true
+      encodeUrl: true
+      followRedirects: global
+      cookies:
+        send: true
+        store: true
+      rebuildPath: true
+  - url: "{{baseurl}}/category/add"
+    name: addCategory
+    meta:
+      id: req_26f9cff9c00c4106a27dd81a9c28f123
+      created: 1789824708333
+      modified: 1789824791984
+      isPrivate: false
+      description: ""
+      sortKey: -1789824708333
+    method: POST
+    body:
+      mimeType: application/json
+      text: |-
+        {
+        	"categoryName": "Vegetables"
+        }
+    headers:
+      - name: Content-Type
+        value: application/json
+    settings:
+      renderRequestBody: true
+      encodeUrl: true
+      followRedirects: global
+      cookies:
+        send: true
+        store: true
+      rebuildPath: true
+  - url: "{{baseurl}}/category/6"
+    name: updateCategory
+    meta:
+      id: req_474b1d7bf36347b7880caef0adf62d7e
+      created: 1789824772399
+      modified: 1789824844041
+      isPrivate: false
+      description: ""
+      sortKey: -1789824772399
+    method: PUT
+    body:
+      mimeType: application/json
+      text: |-
+        {
+        	"categoryName": "Veg updated"
+        }
+    headers:
+      - name: Content-Type
+        value: application/json
+    settings:
+      renderRequestBody: true
+      encodeUrl: true
+      followRedirects: global
+      cookies:
+        send: true
+        store: true
+      rebuildPath: true
+  - url: "{{baseurl}}/category/6"
+    name: deleteCategory
+    meta:
+      id: req_e26eee2864fc4d31ad843ad288e34d80
+      created: 1789824833100
+      modified: 1789828524906
+      isPrivate: false
+      description: ""
+      sortKey: -1789824833100
+    method: DELETE
+    settings:
+      renderRequestBody: true
+      encodeUrl: true
+      followRedirects: global
+      cookies:
+        send: true
+        store: true
+      rebuildPath: true
+  - url: "{{baseurl}}/category/hello?message=world"
+    name: hello
+    meta:
+      id: req_20e5e4c75f744bbf94a9db78d7d3d543
+      created: 1789824858123
+      modified: 1789824887835
+      isPrivate: false
+      description: ""
+      sortKey: -1789824858123
+    method: GET
+    settings:
+      renderRequestBody: true
+      encodeUrl: true
+      followRedirects: global
+      cookies:
+        send: true
+        store: true
+      rebuildPath: true
+  - url: ""
+    name: New Request
+    meta:
+      id: req_ac630afa6d3c48f18b220b975d1408a7
+      created: 1789825370316
+      modified: 1789825372547
+      isPrivate: false
+      description: ""
+      sortKey: -1789825370316
+    method: GET
+    settings:
+      renderRequestBody: true
+      encodeUrl: true
+      followRedirects: global
+      cookies:
+        send: true
+        store: true
+      rebuildPath: true
+  - url: http://localhost:8080/api/public/h2-console/login.jsp?jsessionid=1fee5ec998c7c54a862f1e56a573f2fb
+    name: h2Console
+    meta:
+      id: req_f9e8f2d4dab14da785dcb1e5fd229f17
+      created: 1789825376575
+      modified: 1789827924363
+      isPrivate: false
+      description: ""
+      sortKey: -1789825376575
+    method: GET
+    body:
+      mimeType: text/plain
+      text: |-
+        INSERT INTO CATEGORY (CATEGORY_NAME) VALUES ('Electronics');
+        INSERT INTO CATEGORY (CATEGORY_NAME) VALUES ('Home Appliances');
+        INSERT INTO CATEGORY (CATEGORY_NAME) VALUES ('Mobile Phones');
+        INSERT INTO CATEGORY (CATEGORY_NAME) VALUES ('Laptops');
+        INSERT INTO CATEGORY (CATEGORY_NAME) VALUES ('Computer Accessories');
+        INSERT INTO CATEGORY (CATEGORY_NAME) VALUES ('Gaming Consoles');
+        INSERT INTO CATEGORY (CATEGORY_NAME) VALUES ('Televisions');
+        INSERT INTO CATEGORY (CATEGORY_NAME) VALUES ('Audio Systems');
+        INSERT INTO CATEGORY (CATEGORY_NAME) VALUES ('Cameras');
+        INSERT INTO CATEGORY (CATEGORY_NAME) VALUES ('Smart Watches');
+
+        INSERT INTO CATEGORY (CATEGORY_NAME) VALUES ('Books');
+        INSERT INTO CATEGORY (CATEGORY_NAME) VALUES ('Stationery');
+        INSERT INTO CATEGORY (CATEGORY_NAME) VALUES ('Office Supplies');
+        INSERT INTO CATEGORY (CATEGORY_NAME) VALUES ('Furniture');
+        INSERT INTO CATEGORY (CATEGORY_NAME) VALUES ('Kitchen Essentials');
+        INSERT INTO CATEGORY (CATEGORY_NAME) VALUES ('Dining Sets');
+        INSERT INTO CATEGORY (CATEGORY_NAME) VALUES ('Gardening Tools');
+        INSERT INTO CATEGORY (CATEGORY_NAME) VALUES ('Sports Equipment');
+        INSERT INTO CATEGORY (CATEGORY_NAME) VALUES ('Fitness Accessories');
+        INSERT INTO CATEGORY (CATEGORY_NAME) VALUES ('Outdoor Gear');
+
+        INSERT INTO CATEGORY (CATEGORY_NAME) VALUES ('Men Clothing');
+        INSERT INTO CATEGORY (CATEGORY_NAME) VALUES ('Women Clothing');
+        INSERT INTO CATEGORY (CATEGORY_NAME) VALUES ('Kids Fashion');
+        INSERT INTO CATEGORY (CATEGORY_NAME) VALUES ('Footwear');
+        INSERT INTO CATEGORY (CATEGORY_NAME) VALUES ('Handbags');
+        INSERT INTO CATEGORY (CATEGORY_NAME) VALUES ('Jewellery');
+        INSERT INTO CATEGORY (CATEGORY_NAME) VALUES ('Watches');
+        INSERT INTO CATEGORY (CATEGORY_NAME) VALUES ('Beauty Products');
+        INSERT INTO CATEGORY (CATEGORY_NAME) VALUES ('Personal Care');
+        INSERT INTO CATEGORY (CATEGORY_NAME) VALUES ('Health Supplements');
+
+        INSERT INTO CATEGORY (CATEGORY_NAME) VALUES ('Groceries');
+        INSERT INTO CATEGORY (CATEGORY_NAME) VALUES ('Beverages');
+        INSERT INTO CATEGORY (CATEGORY_NAME) VALUES ('Snacks');
+        INSERT INTO CATEGORY (CATEGORY_NAME) VALUES ('Dairy Products');
+        INSERT INTO CATEGORY (CATEGORY_NAME) VALUES ('Bakery Items');
+        INSERT INTO CATEGORY (CATEGORY_NAME) VALUES ('Frozen Foods');
+        INSERT INTO CATEGORY (CATEGORY_NAME) VALUES ('Organic Products');
+        INSERT INTO CATEGORY (CATEGORY_NAME) VALUES ('Pet Supplies');
+        INSERT INTO CATEGORY (CATEGORY_NAME) VALUES ('Baby Products');
+        INSERT INTO CATEGORY (CATEGORY_NAME) VALUES ('Toys Games');
+
+        INSERT INTO CATEGORY (CATEGORY_NAME) VALUES ('Automotive Parts');
+        INSERT INTO CATEGORY (CATEGORY_NAME) VALUES ('Motorcycle Accessories');
+        INSERT INTO CATEGORY (CATEGORY_NAME) VALUES ('Car Care');
+        INSERT INTO CATEGORY (CATEGORY_NAME) VALUES ('Industrial Tools');
+        INSERT INTO CATEGORY (CATEGORY_NAME) VALUES ('Safety Equipment');
+        INSERT INTO CATEGORY (CATEGORY_NAME) VALUES ('Construction Materials');
+        INSERT INTO CATEGORY (CATEGORY_NAME) VALUES ('Electrical Supplies');
+        INSERT INTO CATEGORY (CATEGORY_NAME) VALUES ('Plumbing Tools');
+        INSERT INTO CATEGORY (CATEGORY_NAME) VALUES ('Hardware Products');
+        INSERT INTO CATEGORY (CATEGORY_NAME) VALUES ('Power Tools');
+
+        INSERT INTO CATEGORY (CATEGORY_NAME) VALUES ('Software Products');
+        INSERT INTO CATEGORY (CATEGORY_NAME) VALUES ('Cloud Services');
+        INSERT INTO CATEGORY (CATEGORY_NAME) VALUES ('Networking Devices');
+        INSERT INTO CATEGORY (CATEGORY_NAME) VALUES ('Storage Devices');
+        INSERT INTO CATEGORY (CATEGORY_NAME) VALUES ('Printers Scanners');
+        INSERT INTO CATEGORY (CATEGORY_NAME) VALUES ('Projectors');
+        INSERT INTO CATEGORY (CATEGORY_NAME) VALUES ('Smart Home');
+        INSERT INTO CATEGORY (CATEGORY_NAME) VALUES ('Security Systems');
+        INSERT INTO CATEGORY (CATEGORY_NAME) VALUES ('Lighting Solutions');
+        INSERT INTO CATEGORY (CATEGORY_NAME) VALUES ('Solar Products');
+
+        INSERT INTO CATEGORY (CATEGORY_NAME) VALUES ('Travel Accessories');
+        INSERT INTO CATEGORY (CATEGORY_NAME) VALUES ('Luggage Bags');
+        INSERT INTO CATEGORY (CATEGORY_NAME) VALUES ('Camping Gear');
+        INSERT INTO CATEGORY (CATEGORY_NAME) VALUES ('Musical Instruments');
+        INSERT INTO CATEGORY (CATEGORY_NAME) VALUES ('Art Supplies');
+        INSERT INTO CATEGORY (CATEGORY_NAME) VALUES ('Craft Materials');
+        INSERT INTO CATEGORY (CATEGORY_NAME) VALUES ('Party Supplies');
+        INSERT INTO CATEGORY (CATEGORY_NAME) VALUES ('Gift Items');
+        INSERT INTO CATEGORY (CATEGORY_NAME) VALUES ('Collectibles');
+        INSERT INTO CATEGORY (CATEGORY_NAME) VALUES ('Luxury Goods');
+
+        INSERT INTO CATEGORY (CATEGORY_NAME) VALUES ('Medical Equipment');
+        INSERT INTO CATEGORY (CATEGORY_NAME) VALUES ('Pharmacy Products');
+        INSERT INTO CATEGORY (CATEGORY_NAME) VALUES ('Laboratory Supplies');
+        INSERT INTO CATEGORY (CATEGORY_NAME) VALUES ('Educational Materials');
+        INSERT INTO CATEGORY (CATEGORY_NAME) VALUES ('Training Courses');
+        INSERT INTO CATEGORY (CATEGORY_NAME) VALUES ('Digital Products');
+        INSERT INTO CATEGORY (CATEGORY_NAME) VALUES ('Subscriptions');
+        INSERT INTO CATEGORY (CATEGORY_NAME) VALUES ('Event Tickets');
+        INSERT INTO CATEGORY (CATEGORY_NAME) VALUES ('Entertainment');
+        INSERT INTO CATEGORY (CATEGORY_NAME) VALUES ('Streaming Devices');
+
+        INSERT INTO CATEGORY (CATEGORY_NAME) VALUES ('Phone Cases');
+        INSERT INTO CATEGORY (CATEGORY_NAME) VALUES ('Chargers Cables');
+        INSERT INTO CATEGORY (CATEGORY_NAME) VALUES ('Bluetooth Devices');
+        INSERT INTO CATEGORY (CATEGORY_NAME) VALUES ('Drone Cameras');
+        INSERT INTO CATEGORY (CATEGORY_NAME) VALUES ('VR Accessories');
+        INSERT INTO CATEGORY (CATEGORY_NAME) VALUES ('Smart Sensors');
+        INSERT INTO CATEGORY (CATEGORY_NAME) VALUES ('Robotics Kits');
+        INSERT INTO CATEGORY (CATEGORY_NAME) VALUES ('3D Printers');
+        INSERT INTO CATEGORY (CATEGORY_NAME) VALUES ('Bicycles');
+        INSERT INTO CATEGORY (CATEGORY_NAME) VALUES ('Cycling Accessories');
+
+        INSERT INTO CATEGORY (CATEGORY_NAME) VALUES ('Fishing Gear');
+        INSERT INTO CATEGORY (CATEGORY_NAME) VALUES ('Hiking Equipment');
+        INSERT INTO CATEGORY (CATEGORY_NAME) VALUES ('Winter Clothing');
+        INSERT INTO CATEGORY (CATEGORY_NAME) VALUES ('Summer Apparel');
+        INSERT INTO CATEGORY (CATEGORY_NAME) VALUES ('Ethnic Wear');
+        INSERT INTO CATEGORY (CATEGORY_NAME) VALUES ('Formal Wear');
+        INSERT INTO CATEGORY (CATEGORY_NAME) VALUES ('Home Decor');
+        INSERT INTO CATEGORY (CATEGORY_NAME) VALUES ('Wall Art');
+        INSERT INTO CATEGORY (CATEGORY_NAME) VALUES ('Mattresses');
+        INSERT INTO CATEGORY (CATEGORY_NAME) VALUES ('Cleaning Supplies');
+    headers:
+      - name: Content-Type
+        value: text/plain
+    settings:
+      renderRequestBody: true
+      encodeUrl: true
+      followRedirects: global
+      cookies:
+        send: true
+        store: true
+      rebuildPath: true
+cookieJar:
+  name: Default Jar
+  meta:
+    id: jar_9fb0badaef3b721780ff6039416c5206ce24faa2
+    created: 1789824390486
+    modified: 1789824390486
+environments:
+  name: SpringBoot
+  meta:
+    id: env_9fb0badaef3b721780ff6039416c5206ce24faa2
+    created: 1789824390483
+    modified: 1789824448618
+    isPrivate: false
+  data:
+    baseurl: http://localhost:8080/api/public
