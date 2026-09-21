@@ -2443,3 +2443,67 @@
         - join table between them is user_group and
         - joint-column of SocialUser is user_id
         - joint-column of SocialGroup is group_id
+
+### CommandLineRunner:
+- After application launched, we can run some scripts or loading data into database, here it is h2-console.
+- Here I have created **Employee** [Class] entity and EmployeeRepository [Interface] and want to add some data. 
+- Now I have created **DataInitializer**:
+    ```java
+    package com.gomad.social_media.configuration;
+
+    import com.gomad.social_media.models.Employee;
+    import com.gomad.social_media.repository.EmployeeRepository;
+    import org.springframework.boot.CommandLineRunner;
+    import org.springframework.context.annotation.Bean;
+    import org.springframework.context.annotation.Configuration;
+
+    @Configuration
+    public class DataInitializer {
+
+        private final EmployeeRepository employeeRepository;
+
+        public DataInitializer(EmployeeRepository employeeRepository) {
+            this.employeeRepository = employeeRepository;
+        }
+
+        @Bean
+        public CommandLineRunner initDatabase(EmployeeRepository employeeRepository) {
+            return args -> {
+                Employee employee1 = new Employee();
+                employee1.setFirstName("Amar");
+                employee1.setLastName("Deepak");
+                employeeRepository.save(employee1);
+            };
+        }
+    }
+    ```
+- **public CommandLineRunner initDatabase(){ return args -> {}}** runs after application launch. Here I have added employee data into h2 and on launching h2-console, 
+    ![alt text](images/CommandLineRunnerExample.png)
+
+#### HashCode:
+- Sometimes there is a hash code calculation involved and it keeps calling it recursively. 
+- In that case, what we need to do is we need to over-ride it with our own implementation.
+- Also we have to make sure that the hash code calculation in our entity class doesn't involve calling hash code of collections like HashSet, Set recursively. 
+- In SocialUser and SocialGroup, since Set and HashSet are used, there we keep 
+    ```java
+    @Override
+    public int hashCode(){
+        return Objects.hash(id);
+    }
+
+    // Now code becomes like 
+    public class SocialGroup {
+
+        @Id
+        @GeneratedValue(strategy = GenerationType.IDENTITY)
+        private Long id;
+
+        @ManyToMany(mappedBy = "socialGroups")
+        private Set<SocialUser> socialUsers =  new HashSet<>();
+
+        @Override
+        public int hashCode(){
+            return Objects.hash(id);
+        }
+    }
+    ```
