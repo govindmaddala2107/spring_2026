@@ -2389,3 +2389,57 @@
         ![alt text](images/OneToManyWithNoExtraTable.png)
         - Image understanding: One User, with user_id, posts a post, with post_id and it have user_id, which again tracks back to User only.
     - With this, system can know how many posts a user has done and which post is being done by which user. So it is a **bidirectional relationship**. 
+
+- ##### Many to Many Relationship:
+    - Here we user [User(s)] <===> [Group(s)] i.e 
+        - One User can be in multiple Groups and 
+        - One Group can have multiple Users.
+    - Create **SocialGroup.java** 
+        ```java
+        @Entity
+        public class SocialGroup {
+
+            @Id
+            @GeneratedValue(strategy = GenerationType.IDENTITY)
+            private Long id;
+
+            @ManyToMany(mappedBy = "socialGroups")
+            private Set<SocialUser> socialUsers =  new HashSet<>();
+        }
+        ```
+    - We need a third table that needs to be created where this relationship is managed.
+    - Many-to-Many relationship can be managed by following process. 
+        - In SocialGroup, we need to add following annotation. [Here we're making SocialUser as owner]
+            ```java
+            @ManyToMany(mappedBy = "socialGroups")
+            private Set<SocialUser> socialUsers =  new HashSet<>();
+            ```
+        - In SocialUser, 
+            ```java
+            @ManyToMany
+            @JoinTable(
+                    name = "user_group",
+                    joinColumns = @JoinColumn(name = "user_id"),
+                    inverseJoinColumns = @JoinColumn(name = "group_id")
+            )
+            private Set<SocialGroup> socialGroups = new HashSet<>();
+            ```
+        - In Many-to-Many, we use **Set** instead of **List** to avoid duplicacy.
+    - ###### @JoinTable
+        - This annotation help us to few things:
+            1. It will make use of the attributes within join table. And there are few attributes like
+                join column and inverse join column.
+            2. JoinColumn is used to define the foreignKey for the entity where you're defining the relationship.
+            3. Inverse Join Column that defines the foreign key for the other entity that you're defining the relationship.
+
+        - Finally:
+            1. Name of the joint table is "user_group" and key for this table, which means like we're making use of join column
+                - with joinColumns = @JoinColumn(name = "user_id"), we're saying that foreign key for the entity where we're
+                defining relationship, where in social_users [Class here is SocialUser]
+                - with inverseJoinColumns = @JoinColumn(name = "group_id"), it means foreign key for the other side of the relationship is group_id
+        ![alt text](images/ManyToManySetp.png)
+    - Ps: The relationship between the social group and social user is being managed by user_group table.
+    - So Many-to-Many relationship is between SocialUser and SocialGroup and
+        - join table between them is user_group and
+        - joint-column of SocialUser is user_id
+        - joint-column of SocialGroup is group_id
