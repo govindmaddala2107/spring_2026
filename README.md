@@ -2507,3 +2507,187 @@
         }
     }
     ```
+
+#### Circular References | Using @JsonIgnore:
+- In coding, here SocialUser, SocialProfile, Posts and SocialGroups, one has reference to another. 
+- Like, now SocialUser and SocialProfile have reference to each other:
+    ```java
+    public class SocialUser{
+        @OneToOne(mappedBy = "user")
+        private SocialProfile socialProfile;
+
+        @OneToMany(mappedBy = "socialUser")
+        private List<Post> posts = new ArrayList<>();
+
+        @ManyToMany
+        private Set<SocialGroup> socialGroups = new HashSet<>();
+
+    }
+
+    public class SocialProfile {
+
+        @Id
+        @GeneratedValue(strategy = GenerationType.IDENTITY)
+        private Long id;
+
+        @OneToOne
+        @JoinColumn(name = "social_user")
+        private SocialUser user;
+    }
+    ```
+- It results in infinite recursive looping. We will get some response like below but there will be StackOverFlow error and API response to get all SocialUsers as below:
+    ```json
+    [
+        {
+            "id": 1,
+            "socialProfile": {
+                "id": 1,
+                "user": {
+                    "id": 1,
+                    "socialProfile": {
+                        "id": 1,
+                        "user": {
+                            "id": 1,
+                            "socialProfile": {
+                                "id": 1,
+                                "user": {
+                                    "id": 1,
+                                    "socialProfile": {
+                                        "id": 1,
+                                        "user": {
+                                            "id": 1,
+                                            "socialProfile": {
+                                                "id": 1,
+                                                "user": {
+                                                    "id": 1,
+                                                    "socialProfile": {
+                                                        "id": 1,
+                                                        "user": {
+                                                            "id": 1,
+                                                            "socialProfile": {
+                                                                "id": 1,
+                                                                "user": {
+                                                                    "id": 1,
+                                                                    "socialProfile": {
+                                                                        "id": 1,
+                                                                        "user": {
+                                                                            "id": 1,
+                                                                            "socialProfile": {
+                                                                                "id": 1,
+                                                                                "user": {
+                                                                                    "id": 1,
+                                                                                    "socialProfile": {
+                                                                                        "id": 1,
+                                                                                        "user": {
+                                                                                            "id": 1,
+                                                                                            "socialProfile": {
+                                                                                                "id": 1,
+                                                                                                "user": {}
+                                                                                            }
+                                                                                        }
+                                                                                    }
+                                                                                }
+                                                                            }
+                                                                        }
+                                                                    }
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    ]
+    ```
+
+- Now SocialUser is owner, so on other parts, here they are SocialProfile, Posts and SocialGroups, we will add **@JsonIgnore** on field of reference of SocialUser field like in SocialProfile:
+    ```java
+    public class SocialProfile {
+    
+        @OneToOne
+        @JoinColumn(name = "social_user")
+        @JsonIgnore
+        private SocialUser user;
+    }
+
+    // Add @JsonIgnore annotation on top of SocialUser field in the Classes whose references are getting used in SocialUser.
+
+    ```
+- With @JsonIgnore addition, now response is so proper and it is like
+    ```json
+    [
+        {
+            "id": 1,
+            "socialProfile": {
+                "id": 1
+            },
+            "posts": [
+                {
+                    "id": 1
+                },
+                {
+                    "id": 2
+                }
+            ],
+            "socialGroups": [
+                {
+                    "id": 1
+                },
+                {
+                    "id": 2
+                }
+            ]
+        },
+        {
+            "id": 2,
+            "socialProfile": {
+                "id": 2
+            },
+            "posts": [
+                {
+                    "id": 3
+                }
+            ],
+            "socialGroups": [
+                {
+                    "id": 1
+                },
+                {
+                    "id": 3
+                }
+            ]
+        },
+        {
+            "id": 3,
+            "socialProfile": {
+                "id": 3
+            },
+            "posts": [
+                {
+                    "id": 4
+                },
+                {
+                    "id": 5
+                }
+            ],
+            "socialGroups": [
+                {
+                    "id": 2
+                },
+                {
+                    "id": 3
+                }
+            ]
+        }
+    ]
+    ```
+- With @JsonIgnore, we can remove or get rid of infinite nesting of objects when we're dealing with **bidirectional relationship**.
+- When you add **@JsonIgnore** to any side of the relationship, it tells to ignore that side from serialization and deserialization process from object to JSON and vice versa.
