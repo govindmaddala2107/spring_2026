@@ -16,8 +16,16 @@ public class SocialProfile {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @OneToOne
-    @JoinColumn(name = "social_user")
+    @OneToOne(mappedBy = "socialProfile")
     @JsonIgnore
     private SocialUser user;
+
+    private String description;
+
+    public void setSocialUser(SocialUser socialUser){
+        this.user = socialUser;
+        if(socialUser.getSocialProfile() != this){
+            socialUser.setSocialProfile(this);
+        }
+    }
 }

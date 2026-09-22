@@ -2,6 +2,8 @@ package com.gomad.social_media.configuration;
 
 import com.gomad.social_media.models.Employee;
 import com.gomad.social_media.repository.EmployeeRepository;
+import com.gomad.social_media.repository.SocialUserRepository;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -11,12 +13,19 @@ public class DataInitializer {
 
     private final EmployeeRepository employeeRepository;
 
+    @Autowired
+    private SocialUserRepository socialUserRepository;
+
     public DataInitializer(EmployeeRepository employeeRepository) {
         this.employeeRepository = employeeRepository;
     }
 
     @Bean
     public CommandLineRunner initDatabase(EmployeeRepository employeeRepository) {
+
+        System.out.println("FetchType checking");
+        socialUserRepository.findById(1L);
+
         return args -> {
             Employee employee1 = new Employee();
             employee1.setFirstName("Amar");
@@ -24,4 +33,6 @@ public class DataInitializer {
             employeeRepository.save(employee1);
         };
     }
+
+
 }

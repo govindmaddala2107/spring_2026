@@ -2313,10 +2313,6 @@
                 ```
                 ![alt text](images/One2OneBiDirectionalWithOneForeignKeyProfileOwner.png)
 
-
-
-
-
 - ##### One to Many & Many to One Relationships:
     - [User] ===> [Posts]
     - Coding part is:
@@ -2691,3 +2687,212 @@
     ```
 - With @JsonIgnore, we can remove or get rid of infinite nesting of objects when we're dealing with **bidirectional relationship**.
 - When you add **@JsonIgnore** to any side of the relationship, it tells to ignore that side from serialization and deserialization process from object to JSON and vice versa.
+
+### Cascading:
+- Now SocialUser is dependent on SocialProfile, SocialGroups and Posts, let's say I am adding SocialUser directly, then I will get errors like:
+    - AssertionFailure: non-transient entity has a null id;
+    - StaleObjectStateException: Row was already updated or deleted by another transaction for entity, SocialUser with id '4'.
+        - Don't send ids' in the payload since we are already handling using strategy.
+    - request body is:
+        ```json
+        {
+            "socialProfile": {
+                "description": "Test"
+            }
+        }
+        ```
+- So in this case, either we have to create SocialProfile first and then map it for SocialUser and then have to save SocialUser or we can specify some instructions to how to save it automatically.
+    - So when we're trying to save SocialUser, we will try to save SocialProfile and this is called Cascading.
+- So whenev you're performing an operation on one entity and you automatically want other operations to be propagated or cascaded to the other entities as well that are associated to that entity, then this is called as **Cascading**.
+- There are many types of Cascading.
+    - PERSIST:
+        - If you persist or save an entity, operation is cascaded to related entites as well.
+        - So if you save SocialUser, then it will automatically create and save SocialProfile as well.
+    - MERGE:
+        - If you merge the state of an entity and cascade the operation to related entities.
+    - REMOVE:
+        - If you remove an entity then related entities will get deleted as well.
+        - Here, if I want to delete SocialUser, then it's related SocialProfile, Posts and SocialGroups releated data as well has to be deleted.
+    - REFRESH:
+        - If you refresh an entity from the database, cascade the operation to the related entites as well.
+    - DETACH:
+        - If you want to detach an entity from persistence context,so you want all the related entities also to be cascaded for this.
+    - ALL:
+        - ALL means "All the above Operations", means if you do any of the entities, you want them to be cascaded to the related entities.
+            - If you save/delete one entity, related entity to get saved/deleted as well.
+- #### CascadeType.ALL
+    - Now I changed **@OneToOne** to **@OneToOne(cascade = CascadeType.ALL)**
+        ```java
+        public class SocialUser {
+        
+            @Id
+            @GeneratedValue(strategy = GenerationType.IDENTITY)
+            private Long id;
+
+            @OneToOne(cascade = CascadeType.ALL)
+            @JoinColumn(name = "social_profile")
+            private SocialProfile socialProfile;
+        }
+        ```
+    - With the changes, now User and Profile will get created:
+        - /socialusers/add
+            - RequestBody:
+                ```json
+                {
+                    "socialProfile": {
+                        "description": "Test"
+                    }
+                }
+                ```
+            - ResponseBody:
+                ```json
+                {
+                    "id": 1,
+                    "socialProfile": {
+                        "id": 1,
+                        "description": "Test"
+                    },
+                    "posts": null,
+                    "socialGroups": null
+                }
+                ```
+        - /socialusers:
+            - Response is:
+                ```json
+                [
+                    {
+                        "id": 1,
+                        "socialProfile": {
+                            "id": 1,
+                            "description": "Test"
+                        },
+                        "posts": [],
+                        "socialGroups": []
+                    }
+                ]
+                ```
+    - PS: Don't send ids' in the payload since we are already handling using strategy. 
+    - Issues with null and using set**:
+        - Sometimes /socialusers comes as:
+            ```json
+            [
+                {
+                    "id": 1,
+                    "socialProfile": null,
+                    "posts": [],
+                    "socialGroups": []
+                }
+            ]
+            ```
+        - This can be handled by setting some custom setters. Lombok setters just assign values simply. So in this case, we need to create own setters. [For us no need of setters, it is working but only for future references, I have added]
+            ```java
+
+            // In SocialUser, setter for SocialProfile:
+            public void setSocialProfile(SocialProfile socialProfile){
+                socialProfile.setUser(this);
+                this.socialProfile = socialProfile;
+            }
+
+            // In SocialProfile, setter for SocialUser: 
+            public void setSocialUser(SocialUser socialUser){
+                this.user = socialUser;
+                if(socialUser.getSocialProfile() != this){
+                    socialUser.setSocialProfile(this);
+                }
+            }
+            ```
+
+- #### CascadeType.PERSIST
+    - Now it works only to save but don't delete. On saving **SocialUser** by providing **SocialProfile**, both will get created in database.
+    - But on deleting **SocialUser**, we will get error like below and it is absolutely correct.
+        - ```org.hibernate.TransientPropertyValueException: Persistent instance of 'com.gomad.social_media.models.SocialProfile' references an unsaved transient instance of 'com.gomad.social_media.models.SocialUser' (persist the transient instance before flushing) [com.gomad.social_media.models.SocialProfile.user -> com.gomad.social_media.models.SocialUser]```
+
+- #### Multiple Cascade types:
+    - Now I don't want **CascadeType.ALL** but want I want multiple ones then we have to give like
+        ```java
+        @OneToOne(cascade = { CascadeType.PERSIST, CascadeType.REMOVE})
+        ```
+
+### FetchType
+- FetchType plays a crucial role in defining how and when related entities are loaded from the database in relation to the parent entity.
+- There might be scenarios like where we might or might not want to load the data from the child tables when parent entity is fetched.
+- In these scenarios, FetchType comes into picture and is of 2 types:
+    - FetchType.LAZY
+        - This is when the entities are not loaded immediately with the parent entity. 
+        - Instead they're loaded on demand, which means they only get loaded when they're accessed for the first time in the code.
+        - This approach is helpful in improving performance, especially when the related entities are not needed immediately.
+    - FetchType.EAGER
+        - Means related entities are loaded simultaneously with parent entities.
+        - This can be convenient when we need related entities to get loaded immedialtely after the loading of parent entity.
+        - However, it can lead to performance issues if not used in the right way.
+- Default FetchTypes in relationship:
+    - Lazy: [Ends with Many]
+        - OneToMany
+        - ManyToMany
+    - Eager: [Ends with One]
+        - ManyToOne
+        - OneToOne
+- Coding:
+    - In application.properties, add:
+        ```
+        spring.jpa.show-sql=true
+        spring.jpa.properties.hibernate.format_sql=true
+        ```
+    - In DataInitializer.java
+        ```java
+        @Bean
+        public CommandLineRunner initDatabase(EmployeeRepository employeeRepository) {
+            System.out.println("FetchType checking");
+            socialUserRepository.findById(1L);
+        }
+    - On console:
+        ```
+        FetchType checking
+        Hibernate: 
+            select
+                su1_0.id,
+                sp1_0.id,
+                sp1_0.description 
+            from
+                social_user su1_0 
+            left join
+                social_profile sp1_0 
+                    on sp1_0.id=su1_0.social_profile 
+            where
+                su1_0.id=?
+        ```
+    - If we see here, only SocialUser and SocialProfile are coming because
+        - SocialUser: because we're querying for this.
+        - SocialProfile: It is OneToOne relationship and it is eager.
+- Now I made ManyToMany as Eager by 
+    ```java
+    // In SocialUser.java for SocialGroup field deliberately I made it to Eager:
+
+    @ManyToMany(fetch = FetchType.EAGER)
+    private Set<SocialGroup> socialGroups = new HashSet<>();
+    ```
+    - Now on console:
+        ```
+        FetchType checking
+        Hibernate: 
+            select
+                su1_0.id,
+                sg1_0.user_id,
+                sg1_1.id,
+                sp1_0.id,
+                sp1_0.description 
+            from
+                social_user su1_0 
+            left join
+                user_group sg1_0 
+                    on su1_0.id=sg1_0.user_id 
+            left join
+                social_group sg1_1 
+                    on sg1_1.id=sg1_0.group_id 
+            left join
+                social_profile sp1_0 
+                    on sp1_0.id=su1_0.social_profile 
+            where
+                su1_0.id=?
+        ```
+    - Here now we could see querying of SocialGroup [sg] also.
