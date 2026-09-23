@@ -2895,4 +2895,66 @@
             where
                 su1_0.id=?
         ```
-    - Here now we could see querying of SocialGroup [sg] also.
+- Here now we could see querying of SocialGroup [sg] also.
+
+### Spring Security:
+- ##### Importance of Securtiy:
+    - Privacy Protection
+    - Trust
+    - Integrity
+    - Compliance
+- ##### Role of Spring Security within the Spring Ecosystem
+    - Authentication
+    - Authorization
+- ##### Authentication:
+    - It is proving who you are.
+    - It means logging into the system.
+- ##### Authorization
+    - It is about what you're allowed to do after you've proven who you are.
+    - It means you get some roles/permissions to do particular things, for others you won't get, then you're un-authorized even if you're authenticated.
+- ##### Key Security Principles:
+    - Least Privileges: 
+        - Users and Process should have minimum level of access or permissions to perform certain taks.
+    - Secure by Design:
+        - Security consideration should be integrated into the design phase of software development rather than adding it as an afterthought.
+    - Fail-Safe Defaults:
+        - Systems should be designed with secure defaults, meaning they should operate securely out of the box without requiring additional configuration.
+    - Secure Communication:
+        - So whatever communication you're doing, transmitting data over the network, it should be encrypted and should prevent any interception over there.
+    - Input Validation:
+        - All the input data from the external APIs and everything should be validated to provent any sort of attacks like SQL injection and so on.
+    - Auditing and Logging:
+        - Auditing and Logging mechanisms should be done to record the events related to security and all the actions that are being performed in system.
+    - Regular Updates & Patch Management:
+        - Keeping software dependencies, libraries, frameworks up to date with latest security patches & fixes so that vulnerabilities will be less.
+- ##### Working of Spring Security | Flow & Internal Details:
+    - Flow chart is
+    ![alt text](images/SpringSecurityFlowChart.png)
+    - Filters come before the controllers.
+    - If Spring Security is configured in project, then in filters you'll have **Authentication filter**.
+    - Authentication filter will intercept the authentication request
+        - grabs username and password and create a **authentication object**
+        - Then this **authentication object** will be handed over to **Authentication Manager**
+    - **Authentication Manager** is someone who decides what to do with these credentials i.e it will delegate tasks like authenticating the user to someone else and it is **Authentication Provider**.
+    - **Authentication Provider** is someone who is responsible for checking whether the given username and password are correct or not.
+        - for authenticating provider to validate the credentials, it will need 2 things
+            - PasswordEncoder: 
+                - User credentials are always encoded or encrypted in payload, to decrypt those, we need some sort of processing where **PasswordEncoder** helps us.
+            - UserDetailsService:
+                - We get the user details from the database.
+        - Using user details and password encoder, AuthenticationProvider do authentication and on successful authentication, then authentication object will be populated with more details and rules as per the requirement and will be handed over it back to the **AuthenticationManager**.
+        - AuthenticationManager returns that object back to AuthenticationFilter and then **Security Context** will be set.
+    - **Security Context** is a sort of context, wherein the information about the authentication is strored. It will be available throughout the duration of the request.
+    - **DaoAuthenticationProvider** is one of the common authentication providers used.
+        - This is used when you wish to validate the users against the database.
+        - It relies on **UserDetailsService** to fetch user details and then compare it with the provided credentials against these details.
+        - There are other providers depending on where the user details are coming and some are: 
+            - **In-memory authentication provider** which can be used when we are storing data in in-memory instead of database.
+            - **LDAP authentication provider** [Light weight Directory Access Protocol] for LDAP integration.
+            - JDBC Authentication provider.
+    - In DaoAuthenticationProvider flow is like:
+        - AuthenticationManager calls **authenticate()** to access **AuthenticationProvider(DaoAuthenticationProvider)**.
+        - AuthenticationProvider calls 
+            - **matches()** for **PasswordEncoder**
+            - **loadByUsername()** for **UserDetailsService**
+        - UserDetailsService calls database by **findByUsername()**
