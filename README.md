@@ -2958,3 +2958,64 @@
             - **matches()** for **PasswordEncoder**
             - **loadByUsername()** for **UserDetailsService**
         - UserDetailsService calls database by **findByUsername()**
+- ##### Spring Security Setup
+    - Dependency needed is **spring-boot-starter-security**.
+    - In Springboot, when we just add the dependency, it will automatically secure all the endpoints.
+    - Like I setup **localhost:8080/home**
+        ```java
+        @RestController
+        public class UserController {
+
+            @GetMapping("/hello")
+            public String hello() {
+                return "Hello World";
+            }
+        }
+        ```
+    -  Now when I try to access /home, it will redirect to "http://localhost:8080/login".
+        ![alt text](images/SpringSecurityLogin.png)
+    - So here, username is **user** and a new password will be generated always and prints on console like:
+        - Using generated security password: a54d7f8b-d54d-4b25-807e-01e90cf0e74b
+        ![alt text](images/SpringSecurityHelloResponse.png)
+    - Logout url is **http://localhost:8080/logout**
+    - This authentication provided by SpringSecurity is **Form-based authentication**.
+    - In application.properties, we can make changes:
+        - spring.security.user.name=admin
+        - spring.security.user.password=test
+    - Now username is admin and password is test.
+- ##### Over-riding Security Filter
+    - Press Shift button twice and check for **SpringBootWebSecurityConfiguration** and if you're unable to find this, in IntelliJ, make sure like below image
+    ![alt text](images/IntelliJSettings.png)
+    In Spring Boot 4.0.1, the class SpringBootWebSecurityConfiguration no longer exists.
+    - Earlier versions had visible classes like **SpringBootWebSecurityConfiguration** and **WebSecurityConfigurerAdapter**. These have been removed in newer versions.
+    - Now, default security is provided automatically by **SecurityAutoConfiguration**.
+    - Spring internally creates a **SecurityFilterChain** bean that enables:
+        -  Authentication for all requests
+        -  Form-based login
+        -  HTTP Basic authentication
+    - This is why you cannot search and find a specific class **SpringBootWebSecurityConfiguration** anymore.
+    - When you define your own **SecurityFilterChain** bean, Spring Boot disables the default one automatically. This is the recommended and correct approach now. So:
+        -  Old class -> removed
+        -  New mechanism -> auto-configured SecurityFilterChain
+        -  Custom security -> define your own SecurityFilterChain bean
+    - Code to implement **SecurityFilterChain** is:
+        ```java
+        package com.gomad.spring_security;
+
+        @Configuration
+        @EnableWebSecurity
+        public class SecurityConfig {
+            @Bean
+            SecurityFilterChain defaultSecurityFilterChain(HttpSecurity http) throws Exception {
+                // it will authenticate every request and Allows restricting access based upon the HttpServletRequest using RequestMatcher implementations (i.e. via URL patterns).
+                http.authorizeHttpRequests((requests) -> requests.anyRequest().authenticated());
+                // The most basic configuration defaults to automatically generating a login page at the URL "/login", redirecting to "/login?error" for authentication failure.
+                http.formLogin(Customizer.withDefaults());
+                // to configure HTTP Basic authentication for an application.
+                http.httpBasic(Customizer.withDefaults());
+                // Builds the object and returns
+                return http.build();
+            }
+        }
+        ```
+    - If I comment all those, then default security will be by-passed and I can access "/hello".
