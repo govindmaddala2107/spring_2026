@@ -3130,3 +3130,55 @@
     - Now when [admin:testing#123] access
         - "/admin", then response is "Hello Admin..!" || 200.
         - "/user" then response is "Forbidden" || 403.
+
+
+- ##### Enabling H2 Database with Spring Security:
+    - By default H2 database comes with own login, so with our login details, it won't work.
+    - So we can bypass our login with adding following line in **SecurityFilterChain defaultSecurityFilterChain** in SecurityConfig:
+        ```java
+        http.authorizeHttpRequests((requests) ->
+                requests.requestMatchers("/h2-console/**").permitAll()
+                        .anyRequest().authenticated());
+        ```
+    - It mean to permit all the urls matching /h2-console/**.
+    - Even after adding this, still it won't work because we need to disable CSRF by
+        ```java
+        http.csrf(csrf -> csrf.disable());
+
+        // [Or with Lambda with method reference]
+        http.csrf(AbstractHttpConfigurer::disable);
+        ```
+    - After this, it won't ask for login, but h2-console will be like:
+        ![alt text](images/SpringSecurtiyH2ConsoleFrameError.png)
+    - This can be fixed by adding below line in **SecurityFilterChain defaultSecurityFilterChain**
+        ```java
+        http.headers(headers -> headers.frameOptions(frameOptions -> frameOptions.sameOrigin()));
+        [Or with Lambda with method reference]
+        http.headers(headers -> headers.frameOptions(HeadersConfigurer.FrameOptionsConfig::sameOrigin));
+        ```
+    - Now full method is like:
+        ```java
+        @Configuration
+        @EnableWebSecurity
+        @EnableMethodSecurity
+        public class SecurityConfig {
+
+            @Bean
+            SecurityFilterChain defaultSecurityFilterChain(HttpSecurity http) throws Exception {
+                http.authorizeHttpRequests((requests) ->
+                        requests.requestMatchers("/h2-console/**").permitAll() // to permin /h2-console/ without authentication
+                                .anyRequest().authenticated());
+                http.sessionManagement(session ->
+                        session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
+                http.httpBasic(Customizer.withDefaults());
+
+                // to enable the frames of h2-console
+                http.headers(headers -> headers.frameOptions(HeadersConfigurer.FrameOptionsConfig::sameOrigin));
+
+                // to disable CSRF
+                http.csrf(AbstractHttpConfigurer::disable);
+                return http.build();
+            }
+        }
+        ```
+    - After this we can access h2-console like before.
