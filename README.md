@@ -3007,15 +3007,126 @@
         public class SecurityConfig {
             @Bean
             SecurityFilterChain defaultSecurityFilterChain(HttpSecurity http) throws Exception {
+
                 // it will authenticate every request and Allows restricting access based upon the HttpServletRequest using RequestMatcher implementations (i.e. via URL patterns).
                 http.authorizeHttpRequests((requests) -> requests.anyRequest().authenticated());
+                
                 // The most basic configuration defaults to automatically generating a login page at the URL "/login", redirecting to "/login?error" for authentication failure.
+                // This is form based. Username and Password will be sent as Payload.
                 http.formLogin(Customizer.withDefaults());
+
                 // to configure HTTP Basic authentication for an application.
+                // No Payload
                 http.httpBasic(Customizer.withDefaults());
+                
                 // Builds the object and returns
                 return http.build();
             }
         }
         ```
     - If I comment all those, then default security will be by-passed and I can access "/hello".
+- ##### Stateless Setup:
+    - With above code, in response we will get cookies like as below:
+        ```java
+        @Configuration
+        @EnableWebSecurity
+        public class SecurityConfig {
+
+            @Bean
+            SecurityFilterChain defaultSecurityFilterChain(HttpSecurity http) throws Exception {
+                http.authorizeHttpRequests((requests) -> requests.anyRequest().authenticated());
+
+                // To make APIs stateless
+                http.sessionManagement(session ->
+                        session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
+                // To make APIs stateless
+
+                http.httpBasic(Customizer.withDefaults());
+                return http.build();
+            }
+        }
+        ```
+        ![alt text](images/SpringSecurityStatefulAPIS.png)
+    - With some code settings, we can make APIs stateless.
+        ![alt text](images/SpringSecurityStatelessAPIS.png)
+
+- ##### In-memory Authentication with Spring Securtiy:
+    - currently, username and password are setting in application.properties and also only 1 username can be set. 
+    - But for testing purpose, we add more users in memory like as below:
+        ```java
+        @Configuration
+        @EnableWebSecurity
+        public class SecurityConfig {
+            @Bean
+            public UserDetailsService userDetailsService(){
+                UserDetails user = User.withUsername("user")
+                        .password("{noop}testing@123") // using 
+                    //  .password("testing@123") // password will be stored in encoded format
+                        .roles("USER")
+                        .build();
+
+                UserDetails admin = User.withUsername("admin")
+                        .password("{noop}testing#123")
+                        .roles("ADMIN")
+                        .build();
+
+                return new InMemoryUserDetailsManager(user, admin);
+            }
+        }
+        ```
+    - adding **{noop}** before password means to tell spring to save password in plain text.
+    - InMemoryUserDetailsManager is a class and it is implementation of **UserDetailsService** interface.
+    - Now we have 2 users namely: 
+        - [user:testing@123] and 
+            ![alt text](images/SpringSecurityInMemoryUser.png)
+        - [admin:testing#123]
+            ![alt text](images/SpringSecurityInMemoryAdmin.png)
+- ##### Role Based Authorization
+    - Now I want to forbid access of admin enpoints to user and vice versa.
+    - In controller, on top of endpoint method, add **PreAuthorize("hasRole(<Role>)") like 
+        ```java
+        @RestController
+        public class UserController {
+
+            @GetMapping("/hello") // anyone can access.
+            public String hello() {
+                return "Hello World";
+            }
+
+            @PreAuthorize("hasRole('USER')") // User with role "USER" can access this
+            @GetMapping("/user")
+            public String userEndpoint() {
+                return "Hello User..!";
+            }
+
+            @PreAuthorize("hasRole('ADMIN')") // User with role "ADMIN" can access this
+            @GetMapping("/admin")
+            public String adminEndpoint() {
+                return "Hello Admin..!";
+            }
+        }
+        ```
+    - For this in SecurtityConfig, on top of the class, we have to add an annotation **@EnableMethodSecurity** and it becomes like:
+        ```java
+        @Configuration
+        @EnableWebSecurity
+        @EnableMethodSecurity
+        public class SecurityConfig {
+
+            @Bean
+            SecurityFilterChain defaultSecurityFilterChain(HttpSecurity http) throws Exception {
+                // <---------[Implementation]--------->
+            }
+
+            @Bean
+            public UserDetailsService userDetailsService(){
+                // <---------[Implementation]--------->
+            }
+        }
+        ```
+    - Now when [user:testing@123] access
+        - "/user" then response is "Hello User..!" || 200.
+        - "/admin", then response is "Forbidden" || 403.
+    - Now when [admin:testing#123] access
+        - "/admin", then response is "Hello Admin..!" || 200.
+        - "/user" then response is "Forbidden" || 403.
