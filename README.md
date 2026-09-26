@@ -3182,3 +3182,83 @@
         }
         ```
     - After this we can access h2-console like before.
+
+- ##### User Details Management:
+    - Currently we are adding credentials in application.properties but we can have only 1 user. But we can add more user credentials using InMemoryUserDetailsManager, JdbcUserDetailsManager and so on.
+    - ###### InMemoryUserDetailsManager:
+        - Here users' credentials will be in-memory.
+            ```java
+            @Configuration
+            @EnableWebSecurity
+            @EnableMethodSecurity
+            public class SecurityConfig {
+                @Bean
+                public UserDetailsService userDetailsService(){
+                    UserDetails user = User.withUsername("user")
+                            .password("{noop}testing@123") // using {noop} means to tell spring to save password in plain text
+            //              .password("testing@123") // password will be stored in encoded format
+                            .roles("USER")
+                            .build();
+
+                    UserDetails admin = User.withUsername("admin")
+                            .password("{noop}testing#123")
+                            .roles("ADMIN")
+                            .build();
+
+                    return new InMemoryUserDetailsManager(user, admin);
+                }
+            }
+        - password("{noop}testing@123") 
+            - using {noop} means to tell spring to save password in plain text
+        - password("testing@123") 
+            - password will be stored in encoded format
+    - ###### JdbcUserDetailsManager:
+        - Here we will use databases and currently we are using **h2-console**.
+        - Using **JdbcUserDetailsManager** we can do and it need **DataSource** reference. On application start, here Springboot will give reference of h2-console.
+        - Before that we need to create Users schema, else server will get crashed. So for that, [Spring Security users.ddl](https://github.com/spring-projects/spring-security/blob/main/core/src/main/resources/org/springframework/security/core/userdetails/jdbc/users.ddl) get the below one
+        ```
+        create table users(username varchar_ignorecase(50) not null primary key,password varchar_ignorecase(500) not null,enabled boolean not null);
+
+        create table authorities (username varchar_ignorecase(50) not null,authority varchar_ignorecase(50) not null,constraint fk_authorities_users foreign key(username) references users(username));
+        create unique index ix_auth_username on authorities (username,authority);
+        ```
+        - Create **schema.sql** in resources folder and paste above one.
+        - On application start, it will get run automatically and create **USERS** table in h2 database. And it will add 2 users like given above.
+        ![alt text](images/SpringSecurityJdbcUserDetailsManager.png)
+- ##### Password Encryption
+    - In general, we strore passwords in database in encrypted formats instead of storing them as plain texts.
+    - Code changes are:
+        ```java
+        @Configuration
+        @EnableWebSecurity
+        @EnableMethodSecurity
+        public class SecurityConfig {
+
+            @Bean
+            public UserDetailsService userDetailsService(){
+                UserDetails user = User.withUsername("user")
+                        .password(passwordEncoder().encode("testing@123"))
+                        .roles("USER")
+                        .build();
+
+                UserDetails admin = User.withUsername("admin")
+                        .password(passwordEncoder().encode("testing#123"))
+                        .roles("ADMIN")
+                        .build();
+
+                JdbcUserDetailsManager jdbcUserDetailsManager = new JdbcUserDetailsManager(dataSource);
+                jdbcUserDetailsManager.createUser(user);
+                jdbcUserDetailsManager.createUser(admin);
+                return jdbcUserDetailsManager;
+            }
+
+            @Bean
+            PasswordEncoder passwordEncoder(){
+                return new BCryptPasswordEncoder();
+            }
+        }
+        ```
+    - Now in database, it will be stored in encoded format like:
+        ![alt text](images/SpringSecurityPasswordEncoding.png)
+
+
