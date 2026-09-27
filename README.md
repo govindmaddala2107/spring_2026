@@ -3261,4 +3261,42 @@
     - Now in database, it will be stored in encoded format like:
         ![alt text](images/SpringSecurityPasswordEncoding.png)
 
-
+- ##### JWT [Json Web Token] Implementation:
+    - Files we are goinf to need are:
+        - JwtUtils
+            - Contains utility methods for generating, parsing and validating JWTs like 
+                - generating a token from a username
+                - validating a JWT and 
+                - extracting the username from a token.
+        - AuthTokenFilter
+            - Filters incoming request to chekc for a valid JWT in the headers, setting the authentication context if the token is valid.
+            - Extracts JWT from request header, validates it, and configures the Spring Security context with user details if the token is valid.
+        - AuthEntryPointJwt
+            - Provides custom handling for unauthorized requests, typically when authentication is required but not supplied or valid.
+            - When an unauthorized request is detected, it logs the erro and returns a JSON response with an error message, status code, and the path attempted.
+        - SecurtiyConfig
+            - Configures Spring Security filters & rules for the application.
+            - Sets up the security filter chain, permitting or denying access based on paths and roles.
+            - It also configures session management to stateless, which is crucial for JWT usuage.
+        - Code Setup:
+            - From github, from **jjwt** repository, from [Dependencies Site](https://github.com/jwtk/jjwt#installation), get following code:
+                ```xml
+                <dependency>
+                    <groupId>io.jsonwebtoken</groupId>
+                    <artifactId>jjwt-api</artifactId>
+                    <version>0.13.0</version>
+                </dependency>
+                <dependency>
+                    <groupId>io.jsonwebtoken</groupId>
+                    <artifactId>jjwt-impl</artifactId>
+                    <version>0.13.0</version>
+                    <scope>runtime</scope>
+                </dependency>
+                <dependency>
+                    <groupId>io.jsonwebtoken</groupId>
+                    <artifactId>jjwt-jackson</artifactId> <!-- or jjwt-gson if Gson is preferred -->
+                    <version>0.13.0</version>
+                    <scope>runtime</scope>
+                </dependency>
+                ```
+            - 
