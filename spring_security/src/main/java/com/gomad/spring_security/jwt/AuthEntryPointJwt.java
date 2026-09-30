@@ -18,12 +18,12 @@ import tools.jackson.databind.ObjectMapper;
 
 /*
 
-    AuthenticationEntryPoint: Used by {@link ExceptionTranslationFilter} to commence an authentication scheme.
+    AuthenticationEntryPoint: Used by ExceptionTranslationFilter to commence an authentication scheme.
     AuthEntryPointJwt: to modify the response that user gets when his request is not authenticated.
 
     So when someone tries to access a protected API without logging in, instead of showing a blank page or HTML error page,
     which is not a user-friendly, this class is going to help us return a JSON based error response, which will have some details
-    about what error has happened. 
+    about what error has happened.
 */
 
 @Component

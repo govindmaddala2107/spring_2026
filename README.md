@@ -3269,8 +3269,8 @@
                 - validating a JWT and 
                 - extracting the username from a token.
         - AuthTokenFilter
-            - Filters incoming request to chekc for a valid JWT in the headers, setting the authentication context if the token is valid.
-            - Extracts JWT from request header, validates it, and configures the Spring Security context with user details if the token is valid.
+            - Filters incoming request to check for a valid JWT in the headers, setting the **authentication context** if the token is valid.
+            - Extracts JWT from request header, validates it, and configures the Spring **Security context** with user details if the token is valid.
         - AuthEntryPointJwt
             - Provides custom handling for unauthorized requests, typically when authentication is required but not supplied or valid.
             - When an unauthorized request is detected, it logs the erro and returns a JSON response with an error message, status code, and the path attempted.
@@ -3299,4 +3299,348 @@
                     <scope>runtime</scope>
                 </dependency>
                 ```
-            - 
+    -   jwt/JwtUtils.java
+        ```java
+        public class JwtUtils {
+            private static final Logger logger = LoggerFactory.getLogger(JwtUtils.class);
+
+            @Value("${spring.app.jwtExpirationMs}") // to get value from application.properties
+            private int jwtExpirationMs;
+
+            @Value("${spring.app.jwtSecret}")
+            private String jwtSecret;
+
+            // Getting JWT From Headers
+            public String getJwtFromHeader(HttpServletRequest request) {
+                String bearerToken = request.getHeader("Authorization");
+                logger.debug("Bearer Token: {}", bearerToken);
+                if (bearerToken != null && bearerToken.startsWith("Bearer ")) {
+                    return bearerToken.substring(7); // Remove Bearer and return only token.
+                }
+                logger.debug("Bearer Token is empty");
+                return null;
+            }
+
+            // Generating Token from Username
+            public String generateTokenFromUsername(UserDetails userDetails) {
+                String username = userDetails.getUsername();
+                return Jwts.builder()
+                        .subject(username)
+                        .issuedAt(new Date())
+                        .expiration(new Date(System.currentTimeMillis() + jwtExpirationMs))
+                        .signWith(key()) // we are signing the token using a secret key. We need to sign the token with
+                                        // the secret key so that it is proved that token is legit and wasn't tampered
+                                        // with.
+                        .compact(); // which means it finishes the building and returns the token in a compact
+                                    // string format.
+            }
+
+            // Getting Username from JWT token
+            public String getUserNameFromJwtToken(String token) {
+                return Jwts.parser() // start to build the parser to read JWT
+                        .verifyWith(key())// then verify using the key
+                        .build()// to build the parser
+                        .parseSignedClaims(token)// parse the JWT and extract its claims. Claims means the data inside that we
+                                                // will add during token creation.
+                        .getPayload() // to get actual content or payload of the token
+                        .getSubject(); // to get the subject field from the payload.
+            }
+
+            // Generate Signing Key
+            /*
+            1. Keep return type as SecretKey instead of Key.
+            2. Also if secret is plain text like: ```spring.app.jwtSecret=qwetusagdhjdsjfu3y7ir68643ryrhegdsvwhfhi3reuhvehdsgfreud``` then, 
+                - Keys.hmacShaKeyFor(jwtSecret.getBytes());
+            3, If secret key is Base64 encoded like ```spring.app.jwtSecret=cXdldHVzYWdkaGpkc2pmdTN5N2lyNjg2NDNyeXJoZWdkc3Z3aGZoaTNyZXVodmVoZHNnZnJldWQ=``` then,
+                - Keys.hmacShaKeyFor(Decoders.BASE64.decode(jwtSecret));
+            */
+            public SecretKey key() {
+                return Keys.hmacShaKeyFor(Decoders.BASE64.decode(jwtSecret));
+            }
+
+            // Validate JWT Token
+            public boolean validateJwtToken(String token) {
+                try {
+                    logger.debug("Validating jwt token...");
+                    Jwts.parser()
+                            .verifyWith(key())
+                            .build()
+                            .parseSignedClaims(token);
+                    return true;
+                } catch (MalformedJwtException e) {
+                    logger.error("Invalid JWT token {}", e.getMessage());
+                } catch (ExpiredJwtException e) {
+                    logger.error("JWT is expired {}", e.getMessage());
+                } catch (UnsupportedJwtException e) {
+                    logger.error("JWT token is unsupported {}", e.getMessage());
+                } catch (IllegalArgumentException e) {
+                    logger.error("JWT claims string is empty {}", e.getMessage());
+                } catch (SignatureException e) {
+                    logger.error("Invalid JWT signature {}", e.getMessage());
+                } catch (JwtException e) {
+                    logger.error("JWT validation failed {}", e.getMessage());
+                }
+                return false;
+            }
+        }
+        ```
+
+    - jwt/AuthEntryPointJwt.java
+        ```java
+        package com.gomad.spring_security.jwt;
+
+        import jakarta.servlet.ServletException;
+        import jakarta.servlet.http.HttpServletRequest;
+        import jakarta.servlet.http.HttpServletResponse;
+        import org.springframework.http.MediaType;
+        import org.springframework.security.core.AuthenticationException;
+        import org.springframework.security.web.AuthenticationEntryPoint;
+        import org.springframework.stereotype.Component;
+
+        import java.io.IOException;
+        import java.util.HashMap;
+        import java.util.Map;
+
+        import org.slf4j.Logger;
+        import org.slf4j.LoggerFactory;
+        import tools.jackson.databind.ObjectMapper;
+
+        /*
+            AuthenticationEntryPoint: Used by ExceptionTranslationFilter to commence an authentication scheme.
+            AuthEntryPointJwt: to modify the response that user gets when his request is not authenticated.
+
+            So when someone tries to access a protected API without logging in, instead of showing a blank page or HTML error page,
+            which is not a user-friendly, this class is going to help us return a JSON based error response, which will have some details
+            about what error has happened.
+        */
+
+        @Component
+        public class AuthEntryPointJwt implements AuthenticationEntryPoint {
+
+            private static final Logger logger = LoggerFactory.getLogger(AuthEntryPointJwt.class);
+
+            @Override
+            public void commence(HttpServletRequest request,
+                                HttpServletResponse response,
+                                AuthenticationException authException) throws IOException, ServletException {
+                logger.error("Unauthorized error: {}", authException.getMessage());
+                response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                final Map<String, Object> body = new HashMap<>();
+                body.put("status", HttpServletResponse.SC_UNAUTHORIZED);
+                body.put("error", "Unauthorized");
+                body.put("message", authException.getMessage());
+                body.put("path", request.getServletPath());
+                final ObjectMapper mapper = new ObjectMapper();
+                mapper.writeValue(response.getOutputStream(), body);
+            }
+        }
+        ```
+    - Example response is 
+        ```json
+        {
+            "path": "/user",
+            "error": "Unauthorized",
+            "message": "Full authentication is required to access this resource",
+            "status": 401
+        }
+        ```
+    
+    - jwt/AuthTokenFilter.java
+        ```java
+        package com.gomad.spring_security.jwt;
+
+        import java.io.IOException;
+
+        import org.slf4j.Logger;
+        import org.slf4j.LoggerFactory;
+        import org.springframework.beans.factory.annotation.Autowired;
+        import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+        import org.springframework.security.core.context.SecurityContextHolder;
+        import org.springframework.security.core.userdetails.UserDetails;
+        import org.springframework.security.core.userdetails.UserDetailsService;
+        import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
+        import org.springframework.stereotype.Component;
+        import org.springframework.web.filter.OncePerRequestFilter;
+
+        import jakarta.servlet.FilterChain;
+        import jakarta.servlet.ServletException;
+        import jakarta.servlet.http.HttpServletRequest;
+        import jakarta.servlet.http.HttpServletResponse;
+
+        @Component
+        public class AuthTokenFilter extends OncePerRequestFilter { // executes only once for request
+
+            @Autowired // to access our JWTUtils for utility methods 
+            private JwtUtils jwtUtils;
+
+            @Autowired // Core interface which loads user-specific data.
+            private UserDetailsService userDetailsService;
+
+            private static final Logger logger = LoggerFactory.getLogger(AuthTokenFilter.class);
+
+            @Override
+            protected void doFilterInternal(HttpServletRequest request,
+                    HttpServletResponse response,
+                    FilterChain filterChain) throws ServletException, IOException {
+                logger.debug("AuthTokenFilter called for url {}", request.getRequestURI());
+                try {
+                    String jwt = parseJwt(request); // to get JWT from request header.
+                    if (jwt != null && jwtUtils.validateJwtToken(jwt)) {
+                        String username = jwtUtils.getUserNameFromJwtToken(jwt);
+                        UserDetails userDetails = userDetailsService.loadUserByUsername(username);
+                        UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
+                                userDetails, null, userDetails.getAuthorities());
+                        // UsernamePasswordAuthenticationToken designed for simple presentation of a
+                        // username and password.
+                        // This helps us set the rules and permissions for this particular user.
+                        // getAuthorities object is controlling what all rules this user has.
+                        authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request)); // attaching all
+                                                                                                            // the request
+                                                                                                            // details to
+                                                                                                            // authentication
+                                                                                                            // object.
+
+                        // Now we have to say this request is authenticated.
+                        SecurityContextHolder.getContext().setAuthentication(authentication);
+                        // SecurityContext: Interface defining the minimum security information
+                        // associated with the current thread
+                        // setAuthentication: Changes the currently authenticated principal, or removes
+                        // the authentication
+                        logger.debug("Roles from JWT: {}", userDetails.getAuthorities());
+                    }
+                } catch (Exception e) {
+                    logger.error("Can't set user authentication: {} and error trace is {}", e.getMessage(), e.getStackTrace());
+                }
+
+                // now we have to tell Spring Security that we have done with our custom filter
+                // and now you can continue with your filter chain
+                filterChain.doFilter(request, response);
+            }
+
+            private String parseJwt(HttpServletRequest request) {
+                String jwt = jwtUtils.getJwtFromHeader(request);
+                logger.debug("AuthTokenFilter jwt: {}", jwt);
+                return jwt;
+            }
+        }
+
+        ```
+    
+    - SecurityConfig.java
+        ```java
+        public class SecurityConfig {
+
+            @Autowired 
+            DataSource dataSource;
+
+            /*
+            1. It is the class which we have created to intercept requests once.
+            2. Here we are registering a custom JWT authentication filter as a string bean.
+            3. So this AuthTokenFilter filter will
+                - intercept the request
+                - look for authentication header
+                - authenticate the request
+            */
+            @Bean
+            public AuthTokenFilter authenticationJwtTokenFilter() {
+                return new AuthTokenFilter();
+            }
+
+            /*
+            1. It is the class which we have created to customize the response on authentication failure.
+            
+            */
+            @Autowired
+            private AuthEntryPointJwt unauthorizedHandler;
+
+            @Bean
+            SecurityFilterChain defaultSecurityFilterChain(HttpSecurity http) throws Exception {
+                http.authorizeHttpRequests((requests) ->
+                        requests
+                                .requestMatchers("/h2-console/**").permitAll()
+                                .requestMatchers("/signin").permitAll()   // to permit /signin endpoint
+                                .anyRequest().authenticated());
+                http.sessionManagement(session ->
+                        session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)); // to remove custom JWT sessionId 
+
+                http.exceptionHandling((exception) ->
+                        exception.authenticationEntryPoint(unauthorizedHandler); // pass our AuthEntryPointJwt reference
+                );
+
+                http.headers(headers -> headers.frameOptions(HeadersConfigurer.FrameOptionsConfig::sameOrigin));
+                http.csrf(AbstractHttpConfigurer::disable);
+                // Before calling UsernamePasswordAuthenticationFilter, call authenticationJwtTokenFilter.
+                http.addFilterBefore(authenticationJwtTokenFilter(), UsernamePasswordAuthenticationFilter.class);
+                return http.build();
+            }
+
+            @Bean
+            public UserDetailsService userDetailsService(DataSource dataSource) {
+                return new JdbcUserDetailsManager(dataSource);
+            }
+
+            /*
+            <===== [Using CommandLineRunner, we are creating users else following error will come.] =====> 
+            1. Error creating bean with name 'authTokenFilter': Unsatisfied dependency expressed through field 'userDetailsService': Error creating bean with name 'userDetailsService' defined in class path resource.
+            2.  Factory method 'userDetailsService' threw exception with message: PreparedStatementCallback; bad SQL grammar [insert into users (username, password, enabled) values (?,?,?)]
+            */
+            @Bean
+            public CommandLineRunner initData(UserDetailsService userDetailsService){
+                return args -> {
+                    JdbcUserDetailsManager manager = (JdbcUserDetailsManager) userDetailsService;
+                    UserDetails user = User.withUsername("user")
+                            .password(passwordEncoder().encode("testing@123"))
+                            .roles("USER")
+                            .build();
+
+                    UserDetails admin = User.withUsername("admin")
+                            .password(passwordEncoder().encode("testing#123"))
+                            .roles("ADMIN")
+                            .build();
+                    JdbcUserDetailsManager jdbcUserDetailsManager = new JdbcUserDetailsManager(dataSource);
+                    jdbcUserDetailsManager.createUser(user);
+                    jdbcUserDetailsManager.createUser(admin);
+                };
+            }
+
+            @Bean
+            PasswordEncoder passwordEncoder(){
+                return new BCryptPasswordEncoder();
+            }
+
+            @Bean
+            public AuthenticationManager authenticationManager(AuthenticationConfiguration builder) throws Exception {
+                return builder.getAuthenticationManager();
+            }
+        }
+        ```
+    - Now for **/signin**
+        - requestBody:
+            ```json
+            {
+                "username": "admin",
+                "password": "testing#123"
+            }
+            ```
+        - responseBody:
+            ```json
+            {
+                "token": "eyJhbGciOiJIUzM4NCJ9.eyJzdWIiOiJhZG1pbiIsImlhdCI6MTc5MDc4MDE1MSwiZXhwIjoxNzkwODY2NTUxfQ.uClazLJfA3SMd9vOURO-qVZgXtf4GGO2JaBn3tqbxcZUPPJXaVscBZA04GkkXZ8H",
+                "username": "admin",
+                "roles": [
+                    "ROLE_ADMIN"
+                ]
+            }
+            ```
+    - Now for **/admin**
+        - When proper bearer token is not passed, then we will get response like:
+            ```json
+            {
+                "path": "/admin",
+                "error": "Unauthorized",
+                "message": "Full authentication is required to access this resource",
+                "status": 401
+            }
+            ```
+        - On passing proper token, then we will get proper response.
