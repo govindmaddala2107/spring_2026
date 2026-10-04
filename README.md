@@ -1844,6 +1844,13 @@
     - ModelMapper analyzes your object model to intelligently determine how data should be mapped. There's no manual mapping needed. 
     - ModelMapper does most of the work for you, automatically projecting and flattening complex models.
     - Dependency needed is **modelmapper**.
+        ```xml
+        <dependency>
+            <groupId>org.modelmapper</groupId>
+            <artifactId>modelmapper</artifactId>
+            <version>3.2.4</version>
+        </dependency>
+        ```
         ```java
         package com.gomad.h2_jpa.config;
 
@@ -3644,3 +3651,139 @@
             }
             ```
         - On passing proper token, then we will get proper response.
+
+### Postgres Setup:
+- Dependency needed: postgresql & JPA
+    ```xml
+    <dependency>
+        <groupId>org.postgresql</groupId>
+        <artifactId>postgresql</artifactId>
+        <scope>runtime</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-data-jpa</artifactId>
+    </dependency>
+    ```
+- In application.properties:
+    ```
+    # Database URL
+    spring.datasource.url=jdbc:postgresql://localhost:5432/employees
+
+    # Postgresql Credentials
+    spring.datasource.username=postgres
+    spring.datasource.password=postgres
+
+    # Hibernate setup
+    spring.jpa.hibernate.ddl-auto=update
+    spring.jpa.database-platform=org.hibernate.dialect.PostgreSQLDialect
+    ```
+
+![alt text](images/ManagingUserProfiles.png)
+
+### Cookies:
+- Bearer tokens need to be added to the HTTP requests explicitly.
+    - Format is **Authorization: Bearer <Token>
+    ![alt text](images/CookiesBearerTokenFlow.png)
+- Browsers will automatically send the cookies.
+    ![alt text](images/CookiesCookiesFlow.png)
+- Code changes: Refer spring_security repo and mostly code is as same as JWT code, only changes are to set and get token from cookies instead of headers. Refer JWT section code and below only changes are kept.
+    ```java
+    // In JwtUtils.java
+    package com.gomad.spring_security.jwt;
+
+    @Component
+    public class JwtUtils {
+        private static final Logger logger = LoggerFactory.getLogger(JwtUtils.class);
+
+        @Value("${spring.springSecurity.app.jwtCookie}")
+        private String jwtCookie;
+
+        // get cookie from cookies: Before this getJwtFromHeader was there and this change needs to be done in AuthTokenFilter.java
+        public String getJwtFromCookies(HttpServletRequest request) {
+            Cookie cookie = WebUtils.getCookie(request, jwtCookie);
+            assert cookie != null;
+            return cookie.getValue() != null ? cookie.getValue() : null;
+        }
+
+        // generate cookie and send as response and is needed to be updated in Controller.
+        public ResponseCookie generateJwtCookie(UserDetails userDetails){
+            String jwt = generateTokenFromUsername(userDetails);
+            return ResponseCookie.from(jwtCookie, jwt)
+                    .path("/") // this is very much important.
+                    .maxAge(jwtExpirationMs / 1000)
+                    .httpOnly(false)
+                    .build();
+        }
+    }
+
+    // In AuthTokenFilter.java
+
+    @Component
+    public class AuthTokenFilter extends OncePerRequestFilter {
+        private String parseJwt(HttpServletRequest request) {
+        //  String jwt = jwtUtils.getJwtFromHeader(request); // this is for Header token wise
+            String jwt = jwtUtils.getJwtFromCookies(request); // cookie based
+            logger.debug("AuthTokenFilter jwt: {}", jwt);
+            return jwt;
+        }
+    }
+
+
+    // In UserController.java
+    @RestController
+    public class UserController {
+        @PostMapping("/signin")
+        public ResponseEntity<?> authenticateUser(@RequestBody LoginRequest loginRequest) {
+            // <==================[SAME LOGIC]==================>
+            // String token = jwtUtils.generateTokenFromUsername(userDetails); // 
+            ResponseCookie jwtCookie = jwtUtils.generateJwtCookie(userDetails); // cookie is created using userdetails. 
+            List<String> roles = userDetails.getAuthorities().stream()
+                    .map(GrantedAuthority::getAuthority)
+                    .map(item -> item.getAuthority())
+                    .toList();
+            LoginResponse loginResponse = new LoginResponse(jwtCookie.toString(), userDetails.getUsername(), roles);
+            // return ResponseEntity.ok(loginResponse);
+
+            // Coding to send cookie in reponse
+            return ResponseEntity.ok()
+                    .header(HttpHeaders.SET_COOKIE,jwtCookie.toString())
+                    .body(loginResponse);
+        }
+    }
+
+    // In application.properties:
+    spring.app.jwtSecret=cXdldHVzYWdkaGpkc2pmdTN5N2lyNjg2NDNyeXJoZWdkc3Z3aGZoaTNyZXVodmVoZHNnZnJldWQ=
+    spring.app.jwtExpirationMs=86400000
+    spring.springSecurity.app.jwtCookie=springSecurity
+    ```
+-   Now in response, in cookies tab, we will get cookie with name **jwtCookie** as set in application.properties.
+    ![alt text](images/CookieSignin.png)
+- Now cookie will be set automatically by browser, insomnia and other postman tools, like in request headers, bearer token part is empty.
+    ![alt text](images/CookieSigninResponse.png)
+
+- ### Proper Setup:
+
+- Our Auth flow
+    ```
+    Login Request
+            |
+            v
+    AuthenticationManager
+            |
+            v
+    DaoAuthenticationProvider
+            |
+            v
+    UserDetailsServiceImpl
+            |
+            v
+    UserRepository
+            |
+            v
+    PostgreSQL users table
+    ```
+
+
+
+

@@ -1,7 +1,9 @@
-package com.gomad.spring_security.jwt;
+package com.gomad.complete_tutorial.security.jwt;
 
-import java.io.IOException;
-
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -13,10 +15,7 @@ import org.springframework.security.web.authentication.WebAuthenticationDetailsS
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
-import jakarta.servlet.FilterChain;
-import jakarta.servlet.ServletException;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
+import java.io.IOException;
 
 @Component
 public class AuthTokenFilter extends OncePerRequestFilter {
@@ -31,8 +30,8 @@ public class AuthTokenFilter extends OncePerRequestFilter {
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,
-            HttpServletResponse response,
-            FilterChain filterChain) throws ServletException, IOException {
+                                    HttpServletResponse response,
+                                    FilterChain filterChain) throws ServletException, IOException {
         logger.debug("AuthTokenFilter called for url {}", request.getRequestURI());
         try {
             String jwt = parseJwt(request);
@@ -46,10 +45,10 @@ public class AuthTokenFilter extends OncePerRequestFilter {
                 // This helps us set the rules and permissions for this particular user.
                 // getAuthorities object is controlling what all rules this user has.
                 authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request)); // attaching all
-                                                                                                       // the request
-                                                                                                       // details to
-                                                                                                       // authentication
-                                                                                                       // object.
+                // the request
+                // details to
+                // authentication
+                // object.
 
                 // Now we have to say this request is authenticated.
                 SecurityContextHolder.getContext().setAuthentication(authentication);
@@ -75,3 +74,4 @@ public class AuthTokenFilter extends OncePerRequestFilter {
         return jwt;
     }
 }
+

@@ -1,27 +1,21 @@
-package com.gomad.spring_security.jwt;
+package com.gomad.complete_tutorial.security.jwt;
 
-import java.util.Date;
-
-import javax.crypto.SecretKey;
-
+import io.jsonwebtoken.*;
+import io.jsonwebtoken.io.Decoders;
+import io.jsonwebtoken.security.Keys;
+import io.jsonwebtoken.security.SignatureException;
 import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseCookie;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
-
-import io.jsonwebtoken.ExpiredJwtException;
-import io.jsonwebtoken.JwtException;
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.MalformedJwtException;
-import io.jsonwebtoken.UnsupportedJwtException;
-import io.jsonwebtoken.io.Decoders;
-import io.jsonwebtoken.security.Keys;
-import io.jsonwebtoken.security.SignatureException;
-import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.web.util.WebUtils;
+
+import javax.crypto.SecretKey;
+import java.util.Date;
 
 @Component
 public class JwtUtils {
@@ -58,7 +52,7 @@ public class JwtUtils {
     public ResponseCookie generateJwtCookie(UserDetails userDetails){
         String jwt = generateTokenFromUsername(userDetails);
         return ResponseCookie.from(jwtCookie, jwt)
-                .path("/")
+                .path("/api")
                 .maxAge(jwtExpirationMs / 1000)
                 .httpOnly(false)
                 .build();
@@ -72,10 +66,10 @@ public class JwtUtils {
                 .issuedAt(new Date())
                 .expiration(new Date(System.currentTimeMillis() + jwtExpirationMs))
                 .signWith(key()) // we are signing the token using a secret key. We need to sign the token with
-                                 // the secret key so that it is proved that token is legit and wasn't tampered
-                                 // with.
+                // the secret key so that it is proved that token is legit and wasn't tampered
+                // with.
                 .compact(); // which means it finishes the building and returns the token in a compact
-                            // string format.
+        // string format.
     }
 
     // Getting Username from JWT token
@@ -84,7 +78,7 @@ public class JwtUtils {
                 .verifyWith(key())// then verify using the key
                 .build()// to build the parser
                 .parseSignedClaims(token)// parse the JWT and extract its claims. Claims means the data inside that we
-                                         // will add during token creation.
+                // will add during token creation.
                 .getPayload() // to get actual content or payload of the token
                 .getSubject(); // to get the subject field from the payload.
     }
@@ -116,7 +110,6 @@ public class JwtUtils {
         } catch (JwtException e) {
             logger.error("JWT validation failed {}", e.getMessage());
         }
-
         return false;
     }
 }

@@ -4,7 +4,9 @@ import com.gomad.spring_security.jwt.JwtUtils;
 import com.gomad.spring_security.payload.LoginRequest;
 import com.gomad.spring_security.payload.LoginResponse;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -97,12 +99,16 @@ public class UserController {
             map.put("status", false);
             return new ResponseEntity<>(map, HttpStatus.UNAUTHORIZED);
         }
-        String token = jwtUtils.generateTokenFromUsername(userDetails);
+//        String token = jwtUtils.generateTokenFromUsername(userDetails);
+        ResponseCookie jwtCookie = jwtUtils.generateJwtCookie(userDetails);
         List<String> roles = userDetails.getAuthorities().stream()
                 .map(GrantedAuthority::getAuthority)
 //                .map(item -> item.getAuthority())
                 .toList();
-        LoginResponse loginResponse = new LoginResponse(token, userDetails.getUsername(), roles);
-        return ResponseEntity.ok(loginResponse);
+        LoginResponse loginResponse = new LoginResponse(jwtCookie.toString(), userDetails.getUsername(), roles);
+//        return ResponseEntity.ok(loginResponse);
+        return ResponseEntity.ok()
+                .header(HttpHeaders.SET_COOKIE,jwtCookie.toString())
+                .body(loginResponse);
     }
 }

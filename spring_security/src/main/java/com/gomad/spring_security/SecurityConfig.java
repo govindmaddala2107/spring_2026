@@ -79,6 +79,9 @@ public class SecurityConfig {
         return new JdbcUserDetailsManager(dataSource);
     }
 
+    @Autowired
+    private PasswordEncoder passwordEncoder;
+
     @Bean
     public CommandLineRunner initData(UserDetailsService userDetailsService){
         return args -> {
