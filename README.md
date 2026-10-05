@@ -3783,7 +3783,704 @@
             v
     PostgreSQL users table
     ```
+- /signin flow
+    ```
+    Login Request
+        ↓
+    AuthenticationManager
+        ↓
+    DaoAuthenticationProvider
+        ↓
+    UserDetailsServiceImpl
+        ↓
+    loads UserDetailsImpl
+        ↓
+    DaoAuthenticationProvider compares passwords
+        ↓
+    Authentication success
+        ↓
+    UserDetailsImpl stored as principal
+        ↓
+    SecurityContextHolder
+    ```
 
+### Spring Security JWT Authentication Flow & Complete Signin flow:
+
+- #### Overview
+    This application uses:
+    - Spring Security
+    - JWT Authentication
+    - `AuthenticationManager`
+    - `DaoAuthenticationProvider`
+    - `UserDetailsService`
+    - PostgreSQL Database
+
+- Unlike Spring's default `/login` endpoint, authentication is performed through a custom REST endpoint:
+    ```http
+    POST /api/auth/signin
+    ```
+---
+
+- #### End-to-End Authentication Flow
+
+    - ##### Step 1: User calls Sign In API
+        ```http
+        POST /api/auth/signin
+        ```
+
+        Request:
+
+        ```json
+        {
+        "userName": "rama1234",
+        "password": "password123"
+        }
+        ```
+
+        Controller:
+
+        ```java
+        @PostMapping("/signin")
+        public ResponseEntity<?> authenticateUser(
+                @Valid @RequestBody LoginRequest loginRequest) {
+
+            Authentication authentication =
+                    authenticationManager.authenticate(
+                            new UsernamePasswordAuthenticationToken(
+                                    loginRequest.getUserName(),
+                                    loginRequest.getPassword()
+                            )
+                    );
+
+            ...
+        }
+        ```
+        - At this point Spring Security starts the authentication process.
+        ---
+
+    - ##### Step 2: AuthenticationManager Receives Authentication Request
+        Code:
+        ```java
+        authenticationManager.authenticate(
+                new UsernamePasswordAuthenticationToken(
+                        loginRequest.getUserName(),
+                        loginRequest.getPassword()
+                )
+        );
+        ```
+        The `UsernamePasswordAuthenticationToken` initially contains:
+
+        ```text
+        principal   = username
+        credentials = password
+        authenticated = false
+        ```
+
+        Example:
+
+        ```text
+        principal = rama1234
+        credentials = password123
+        authenticated = false
+        ```
+
+        ---
+
+    - ##### Step 3: AuthenticationManager Delegates to DaoAuthenticationProvider
+
+        Configuration:
+
+        ```java
+        @Bean
+        public DaoAuthenticationProvider authenticationProvider() {
+
+            DaoAuthenticationProvider authProvider =
+                    new DaoAuthenticationProvider();
+
+            authProvider.setUserDetailsService(userDetailsService);
+
+            authProvider.setPasswordEncoder(passwordEncoder());
+
+            return authProvider;
+        }
+        ```
+
+        Responsibilities of `DaoAuthenticationProvider`:
+
+        - Load user details
+        - Verify password
+        - Create authenticated Authentication object
+        - Throw exception if credentials are invalid
+
+        ---
+
+    - ##### Step 4: DaoAuthenticationProvider Calls UserDetailsServiceImpl
+
+        Spring invokes:
+
+        ```java
+        userDetailsService.loadUserByUsername(username);
+        ```
+
+        Implementation:
+
+        ```java
+        @Service
+        public class UserDetailsServiceImpl implements UserDetailsService {
+
+            @Autowired
+            private UserRepository userRepository;
+
+            @Override
+            public UserDetails loadUserByUsername(String username)
+                    throws UsernameNotFoundException {
+
+                User user = userRepository.findByUserName(username)
+                        .orElseThrow(() ->
+                                new UsernameNotFoundException("User Not Found"));
+
+                return UserDetailsImpl.build(user);
+            }
+        }
+        ```
+
+        Responsibility of `UserDetailsServiceImpl`:
+
+        ✅ Fetch user from database
+
+        ✅ Convert User entity into UserDetails
+
+        ❌ Does NOT authenticate user
+
+        ❌ Does NOT compare passwords
+
+        ❌ Does NOT generate JWT
+
+        ---
+
+    - ##### Step 5: User is Loaded from Database
+
+        Repository Call:
+
+        ```java
+        userRepository.findByUserName(username)
+        ```
+
+        SQL Equivalent:
+
+        ```sql
+        SELECT *
+        FROM users
+        WHERE username = 'rama1234';
+        ```
+
+        Example User Entity:
+
+        ```java
+        User {
+            id=101,
+            username="rama1234",
+            email="rama1234@gmail.com",
+            password="$2a$10$..."
+        }
+        ```
+
+        ---
+
+    - ##### Step 6: UserDetailsImpl is Created
+
+        Code:
+
+        ```java
+        return UserDetailsImpl.build(user);
+        ```
+
+        Example:
+
+        ```java
+        public class UserDetailsImpl implements UserDetails {
+
+            private Long id;
+
+            private String username;
+
+            private String email;
+
+            @JsonIgnore
+            private String password;
+
+            private Collection<? extends GrantedAuthority> authorities;
+        }
+        ```
+
+        Purpose:
+
+        `UserDetailsImpl` is Spring Security's representation of the authenticated user.
+
+        It contains:
+
+        - User ID
+        - Username
+        - Email
+        - Encoded Password
+        - Roles / Authorities
+
+        ---
+
+    - ##### Step 7: Password Validation
+
+        After receiving the `UserDetailsImpl`, Spring Security validates the password.
+
+        Performed internally by:
+
+        ```java
+        DaoAuthenticationProvider
+        ```
+
+        Conceptually:
+
+        ```java
+        passwordEncoder.matches(
+                enteredPassword,
+                userDetails.getPassword()
+        );
+        ```
+
+        Example:
+
+        ```java
+        passwordEncoder.matches(
+                "password123",
+                "$2a$10$abcdef..."
+        );
+        ```
+
+        - ###### If Password Matches
+
+            - Authentication succeeds.
+
+        - ###### If Password Does Not Match
+
+        Spring throws:
+
+        ```java
+        BadCredentialsException
+        ```
+
+        which is caught here:
+
+        ```java
+        catch(AuthenticationException ex) {
+
+            Map<String, Object> map = new HashMap<>();
+
+            map.put("message", "Bad credentials");
+
+            map.put("status", false);
+
+            return new ResponseEntity<>(
+                    map,
+                    HttpStatus.UNAUTHORIZED
+            );
+        }
+        ```
+
+        ---
+
+    - ##### Step 8: Authenticated Authentication Object Is Created
+
+        After successful authentication, Spring creates a new Authentication object.
+
+        Conceptually:
+
+        ```java
+        Authentication {
+            principal = UserDetailsImpl
+            authorities = [ROLE_USER]
+            authenticated = true
+        }
+        ```
+
+        Before Authentication:
+
+        ```text
+        principal = username string
+        authenticated = false
+        ```
+
+        After Authentication:
+
+        ```text
+        principal = UserDetailsImpl
+        authenticated = true
+        ```
+
+        ---
+
+    - ##### Step 9: Store Authentication in SecurityContext
+
+        Code:
+
+        ```java
+        SecurityContextHolder
+                .getContext()
+                .setAuthentication(authentication);
+        ```
+
+        Purpose:
+
+        Store the authenticated user in Spring Security Context for the current request.
+
+        Flow:
+
+        ```text
+        Authentication
+            ↓
+        SecurityContextHolder
+            ↓
+        Available throughout request lifecycle
+        ```
+
+        ---
+
+    - ##### Step 10: Retrieve Authenticated User
+
+        Code:
+
+        ```java
+        UserDetailsImpl userDetails =
+                (UserDetailsImpl) authentication.getPrincipal();
+        ```
+
+        Here:
+
+        ```java
+        authentication.getPrincipal()
+        ```
+
+        returns the authenticated user.
+
+        Example:
+
+        ```java
+        UserDetailsImpl {
+            id = 101,
+            username = "rama1234",
+            authorities = [ROLE_USER]
+        }
+        ```
+
+        ---
+
+        ## About This Null Check
+
+        Current Code:
+
+        ```java
+        if (userDetails == null) {
+
+            Map<String, Object> map = new HashMap<>();
+
+            map.put("message", "Bad credentials");
+
+            map.put("status", false);
+
+            return new ResponseEntity<>(
+                    map,
+                    HttpStatus.UNAUTHORIZED
+            );
+        }
+        ```
+
+        In most cases, this check is unnecessary.
+
+        Reason:
+
+        If authentication fails:
+
+        ```java
+        authenticationManager.authenticate(...)
+        ```
+
+        throws:
+
+        ```java
+        AuthenticationException
+        ```
+
+        and execution goes to the catch block.
+
+        If authentication succeeds:
+
+        ```java
+        authentication.getPrincipal()
+        ```
+
+        will contain a valid `UserDetailsImpl`.
+
+        So `userDetails` should never be null after successful authentication.
+
+        ---
+
+    - ##### Step 11: Generate JWT Cookie
+
+        Code:
+
+        ```java
+        ResponseCookie jwtCookie =
+                jwtUtils.generateJwtCookie(userDetails);
+        ```
+
+        Purpose:
+
+        Generate JWT token containing authenticated user information.
+
+        Example:
+
+        ```text
+        eyJhbGciOiJIUzI1NiJ9...
+        ```
+
+        JWT is stored inside a cookie and sent to the client.
+
+        ---
+
+    - ##### Step 12: Extract User Roles
+
+        Code:
+
+        ```java
+        List<String> roles =
+                userDetails.getAuthorities()
+                        .stream()
+                        .map(GrantedAuthority::getAuthority)
+                        .toList();
+        ```
+
+        Example:
+
+        ```java
+        [
+            "ROLE_USER"
+        ]
+        ```
+
+        or
+
+        ```java
+        [
+            "ROLE_ADMIN",
+            "ROLE_USER"
+        ]
+        ```
+
+        ---
+
+    - ##### Step 13: Build Response
+
+        Code:
+
+        ```java
+        UserInfoResponse loginResponse =
+                new UserInfoResponse(
+                        userDetails.getId(),
+                        jwtCookie.toString(),
+                        userDetails.getUsername(),
+                        roles
+                );
+        ```
+
+        ---
+
+    - ##### Step 14: Return Response to Client
+
+        Code:
+
+        ```java
+        return ResponseEntity.ok()
+                .header(
+                        HttpHeaders.SET_COOKIE,
+                        jwtCookie.toString()
+                )
+                .body(loginResponse);
+        ```
+
+        Response:
+
+        ```json
+        {
+            "id": 101,
+            "username": "rama1234",
+            "roles": [
+                "ROLE_USER"
+            ]
+        }
+        ```
+
+        ---
+
+        ###### Responsibilities of Major Components
+
+        ###### UserDetailsServiceImpl
+
+        Responsibilities:
+
+        ✅ Load user from database
+
+        ✅ Convert User entity into UserDetails
+
+        ❌ Does not authenticate
+
+        ❌ Does not compare passwords
+
+        ❌ Does not generate JWT
+
+        Example:
+
+        ```java
+        UserDetails loadUserByUsername(String username)
+        ```
+
+        ---
+
+        ###### UserDetailsImpl
+
+        Responsibilities:
+
+        ✅ Represents authenticated user
+
+        ✅ Stores username
+
+        ✅ Stores roles
+
+        ✅ Stores encoded password
+
+        ✅ Becomes Authentication Principal
+
+        Example:
+
+        ```java
+        UserDetailsImpl implements UserDetails
+        ```
+
+        ---
+
+        ###### DaoAuthenticationProvider
+
+        Responsibilities:
+
+        ✅ Call UserDetailsService
+
+        ✅ Load UserDetails
+
+        ✅ Verify password
+
+        ✅ Create authenticated Authentication object
+
+        ✅ Throw exception for invalid credentials
+
+        Example:
+
+        ```java
+        authProvider.setUserDetailsService(userDetailsService);
+
+        authProvider.setPasswordEncoder(passwordEncoder());
+        ```
+
+        ---
+
+        ###### AuthenticationManager
+
+        Responsibilities:
+
+        ✅ Receive authentication request
+
+        ✅ Delegate authentication to provider
+
+        ✅ Return authenticated Authentication object
+
+        Example:
+
+        ```java
+        authenticationManager.authenticate(...)
+        ```
+
+        ---
+
+        ###### SecurityContextHolder
+
+        Responsibilities:
+
+        ✅ Store authenticated user
+
+        ✅ Make Authentication available throughout request
+
+        Example:
+
+        ```java
+        SecurityContextHolder.getContext()
+                            .setAuthentication(authentication);
+        ```
+
+        ---
+
+        ###### Complete Flow Diagram
+
+        ```text
+        POST /api/auth/signin
+                    |
+                    v
+        AuthController
+                    |
+                    v
+        AuthenticationManager.authenticate()
+                    |
+                    v
+        DaoAuthenticationProvider
+                    |
+                    v
+        UserDetailsServiceImpl
+                    |
+                    v
+        UserRepository
+                    |
+                    v
+        PostgreSQL Database
+                    |
+                    v
+        UserDetailsImpl.build(user)
+                    |
+                    v
+        DaoAuthenticationProvider
+        (password verification)
+                    |
+                    v
+        Authenticated Authentication Object
+                    |
+                    v
+        SecurityContextHolder
+                    |
+                    v
+        authentication.getPrincipal()
+                    |
+                    v
+        UserDetailsImpl
+                    |
+                    v
+        Generate JWT Cookie
+                    |
+                    v
+        Return Response
+        ```
+
+        ###### Key Takeaway
+
+            - **UserDetailsServiceImpl** → Loads user from database.
+            - **UserDetailsImpl** → Represents the authenticated user.
+            - **DaoAuthenticationProvider** → Validates password and authenticates user.
+            - **AuthenticationManager** → Delegates authentication process.
+            - **SecurityContextHolder** → Stores authenticated user for the request.
+            - **JWT** → Generated only after successful authentication and returned to the client.
 
 
 

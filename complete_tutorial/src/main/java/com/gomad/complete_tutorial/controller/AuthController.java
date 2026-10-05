@@ -120,7 +120,7 @@ public class AuthController {
         User savedUser = userService.registerUser(user);
         return new ResponseEntity<>(savedUser, HttpStatus.OK);
     }
-    
+
     @GetMapping("/hello")
     public String hello(){
         return "Hello World";
