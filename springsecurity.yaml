@@ -1,0 +1,286 @@
+type: collection.insomnia.rest/5.0
+schema_version: "5.1"
+name: SpringSecurity
+meta:
+  id: wrk_0676f1359b3342fa90951c052dd8d485
+  created: 1790267486518
+  modified: 1790267486518
+  description: ""
+collection:
+  - url: "{{baseurl}}/hello"
+    name: Hello
+    meta:
+      id: req_42f43e3d92ae4f2c9cf35ca36b77d925
+      created: 1790267506998
+      modified: 1790268120943
+      isPrivate: false
+      description: ""
+      sortKey: -1790267506998
+    method: GET
+    authentication:
+      type: basic
+      useISO88591: false
+      username: admin
+      password: testing#123
+      disabled: false
+    settings:
+      renderRequestBody: true
+      encodeUrl: true
+      followRedirects: global
+      cookies:
+        send: true
+        store: true
+      rebuildPath: true
+  - url: "{{baseurl}}/user"
+    name: UserEndpointBasicAuth
+    meta:
+      id: req_1ea8e3b3d3d34ae38d9d71cd8b53b2ce
+      created: 1790268158548
+      modified: 1790608126067
+      isPrivate: false
+      description: ""
+      sortKey: -1790267970417
+    method: GET
+    authentication:
+      type: basic
+      useISO88591: false
+      username: user
+      password: testing@123
+      disabled: false
+    settings:
+      renderRequestBody: true
+      encodeUrl: true
+      followRedirects: global
+      cookies:
+        send: true
+        store: true
+      rebuildPath: true
+  - url: "{{baseurl}}/admin"
+    name: AdminEndpointBasicAuth
+    meta:
+      id: req_3552cf7da9324804bfe71cbf6a0d25b2
+      created: 1790268165513
+      modified: 1790608136958
+      isPrivate: false
+      description: ""
+      sortKey: -1790438466869
+    method: GET
+    authentication:
+      type: basic
+      useISO88591: false
+      username: admin
+      password: testing#123
+      disabled: false
+    settings:
+      renderRequestBody: true
+      encodeUrl: true
+      followRedirects: global
+      cookies:
+        send: true
+        store: true
+      rebuildPath: true
+  - url: "{{baseurl}}/h2-console"
+    name: h2-console
+    meta:
+      id: req_4fe08d2804af4126afe6ff4dc606126d
+      created: 1790269238676
+      modified: 1790780955691
+      isPrivate: false
+      description: ""
+      sortKey: -1790267719398.375
+    method: GET
+    authentication:
+      type: basic
+      useISO88591: false
+      username: admin
+      password: testing#123
+      disabled: false
+    settings:
+      renderRequestBody: true
+      encodeUrl: true
+      followRedirects: global
+      cookies:
+        send: true
+        store: true
+      rebuildPath: true
+  - url: "{{baseurl}}/auth/signin"
+    name: AdminLogin
+    meta:
+      id: req_4b88645818f741a3a950b690eccc0a51
+      created: 1790607695062
+      modified: 1791375071565
+      isPrivate: false
+      description: ""
+      sortKey: -1790607695062
+    method: POST
+    body:
+      mimeType: application/json
+      text: |-
+        {
+        	"userName": "admin",
+        	"password": "testing#123"
+        }
+    headers:
+      - name: Content-Type
+        value: application/json
+    settings:
+      renderRequestBody: true
+      encodeUrl: true
+      followRedirects: global
+      cookies:
+        send: true
+        store: true
+      rebuildPath: true
+  - url: "{{baseurl}}/user"
+    name: UserEndpointBearerToken
+    meta:
+      id: req_437192d91eb14f639f449d1690280587
+      created: 1790607989085
+      modified: 1790692811221
+      isPrivate: false
+      description: ""
+      sortKey: -1790267931798.75
+    method: GET
+    authentication:
+      type: bearer
+      disabled: false
+      token: eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ1c2VyIiwiaWF0IjoxNzkwNjA5MzA3LCJleHAiOjE3OTA2OTU3MDd9.3RLh1ActBYIldCb8pSVaYvsHW2bJzBUb2fHtAr9imas
+    settings:
+      renderRequestBody: true
+      encodeUrl: true
+      followRedirects: global
+      cookies:
+        send: true
+        store: true
+      rebuildPath: true
+  - url: "{{baseurl}}/admin"
+    name: AdminEndpointBearerToken
+    meta:
+      id: req_c8d1fbaa43a7432189fac2b238db577b
+      created: 1790608035683
+      modified: 1790929673439
+      isPrivate: false
+      description: ""
+      sortKey: -1790353852772.5
+    method: GET
+    authentication:
+      type: bearer
+      disabled: true
+      token: ""
+    settings:
+      renderRequestBody: true
+      encodeUrl: true
+      followRedirects: global
+      cookies:
+        send: true
+        store: true
+      rebuildPath: true
+  - url: "{{baseurl}}/signin"
+    name: UserLogin
+    meta:
+      id: req_079a557a64014be7a18a5e3eb1ef8b84
+      created: 1790608154019
+      modified: 1790608158662
+      isPrivate: false
+      description: ""
+      sortKey: -1790310911594.75
+    method: POST
+    body:
+      mimeType: application/json
+      text: |-
+        {
+        	"username": "user",
+        	"password": "testing@123"
+        }
+    headers:
+      - name: Content-Type
+        value: application/json
+    settings:
+      renderRequestBody: true
+      encodeUrl: true
+      followRedirects: global
+      cookies:
+        send: true
+        store: true
+      rebuildPath: true
+  - url: "{{baseurl}}/api/auth/signin"
+    name: AuthHello
+    meta:
+      id: req_bc59bdb691f649e09ed479e7675d820b
+      created: 1791082039423
+      modified: 1791375727945
+      isPrivate: false
+      description: ""
+      sortKey: -1791082039423
+    method: POST
+    body:
+      mimeType: application/json
+      text: |-
+        {
+        	"userName": "gorosh",
+        	"password": "gomad@123",
+        	"email": "gomademail@email.com"
+        }
+    headers:
+      - name: Content-Type
+        value: application/json
+    settings:
+      renderRequestBody: true
+      encodeUrl: true
+      followRedirects: global
+      cookies:
+        send: true
+        store: true
+      rebuildPath: true
+  - url: "{{baseurl}}/api/signout"
+    name: SignOut
+    meta:
+      id: req_6549184b485e4b8dab69786a792a4bb3
+      created: 1791374873240
+      modified: 1791374907981
+      isPrivate: false
+      description: ""
+      sortKey: -1790523080965.5
+    method: POST
+    body:
+      mimeType: application/json
+      text: |-
+        {
+        	"username": "admin",
+        	"password": "testing#123"
+        }
+    headers:
+      - name: Content-Type
+        value: application/json
+    settings:
+      renderRequestBody: true
+      encodeUrl: true
+      followRedirects: global
+      cookies:
+        send: true
+        store: true
+      rebuildPath: true
+cookieJar:
+  name: Default Jar
+  meta:
+    id: jar_80093432d6c43284a25e489c664dc1e506f1dd1a
+    created: 1790267486578
+    modified: 1791375691721
+  cookies:
+    - id: c289c756-035a-42aa-9dd9-72c4dead6f94
+      key: springSecurity
+      value: eyJhbGciOiJIUzM4NCJ9.eyJzdWIiOiJnb3Jvc2giLCJpYXQiOjE3OTEzNzU2OTEsImV4cCI6MTc5MTQ2MjA5MX0.ctLg4nkq58yxodFQi-EVpWzatS8fWcE5SvxQ8FzWTzjPHcdb-apSV_bR6xI7Pqvf
+      domain: localhost
+      path: /api
+      secure: false
+      httpOnly: false
+      hostOnly: true
+environments:
+  name: Base Environment
+  meta:
+    id: env_80093432d6c43284a25e489c664dc1e506f1dd1a
+    created: 1790267486571
+    modified: 1790267558389
+    isPrivate: false
+  data:
+    baseurl: http://localhost:8080

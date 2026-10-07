@@ -1,0 +1,156 @@
+type: collection.insomnia.rest/5.0
+schema_version: "5.1"
+name: CompleteCookie
+meta:
+  id: wrk_6164d042e415484da22927de717f241d
+  created: 1791375854088
+  modified: 1791375854088
+  description: ""
+collection:
+  - url: "{{baseurl}}/auth/signup"
+    name: Signup
+    meta:
+      id: req_d60af8fdd4a045fab6866add457169a1
+      created: 1791375860270
+      modified: 1791375944298
+      isPrivate: false
+      description: ""
+      sortKey: -1791375860270
+    method: POST
+    body:
+      mimeType: application/json
+      text: |-
+        {
+        	"userName": "gorosh143",
+        	"password": "gomad@123",
+        	"email": "gomademail143@email.com"
+        }
+    headers:
+      - name: Content-Type
+        value: application/json
+    settings:
+      renderRequestBody: true
+      encodeUrl: true
+      followRedirects: global
+      cookies:
+        send: true
+        store: true
+      rebuildPath: true
+  - url: "{{baseurl}}/auth/signin"
+    name: Signin
+    meta:
+      id: req_26e7fd25aeff4b118e93a21c335d2b6d
+      created: 1791375955976
+      modified: 1791375962353
+      isPrivate: false
+      description: ""
+      sortKey: -1791375788516
+    method: POST
+    body:
+      mimeType: application/json
+      text: |-
+        {
+        	"userName": "gorosh143",
+        	"password": "gomad@123"
+        }
+    headers:
+      - name: Content-Type
+        value: application/json
+    settings:
+      renderRequestBody: true
+      encodeUrl: true
+      followRedirects: global
+      cookies:
+        send: true
+        store: true
+      rebuildPath: true
+  - url: "{{baseurl}}/auth/hello"
+    name: Hello
+    meta:
+      id: req_7febb30b83814699b4f4bf7bb3d88dc2
+      created: 1791375973396
+      modified: 1791376067440
+      isPrivate: false
+      description: ""
+      sortKey: -1791375752639
+    method: GET
+    body:
+      mimeType: application/json
+      text: ""
+    headers:
+      - name: Content-Type
+        value: application/json
+    settings:
+      renderRequestBody: true
+      encodeUrl: true
+      followRedirects: global
+      cookies:
+        send: true
+        store: true
+      rebuildPath: true
+  - url: "{{baseurl}}/auth/signout"
+    name: Signout
+    meta:
+      id: req_892f5c8203474c8aa1dd4301104aa7f6
+      created: 1791375991867
+      modified: 1791376269909
+      isPrivate: false
+      description: ""
+      sortKey: -1791375734700.5
+    method: POST
+    body:
+      mimeType: application/json
+      text: ""
+    headers:
+      - name: Content-Type
+        value: application/json
+    settings:
+      renderRequestBody: true
+      encodeUrl: true
+      followRedirects: global
+      cookies:
+        send: true
+        store: true
+      rebuildPath: true
+  - url: "{{baseurl}}/auth/get-email"
+    name: New Request
+    meta:
+      id: req_22c6211446404e62804e485745554ee2
+      created: 1791378627584
+      modified: 1791378671363
+      isPrivate: false
+      description: ""
+      sortKey: -1791378627584
+    method: GET
+    settings:
+      renderRequestBody: true
+      encodeUrl: true
+      followRedirects: global
+      cookies:
+        send: true
+        store: true
+      rebuildPath: true
+cookieJar:
+  name: Default Jar
+  meta:
+    id: jar_e04cf2d7f718f146084bfaff79b899f6a699223c
+    created: 1791375854137
+    modified: 1791378621793
+  cookies:
+    - id: d549e716-feac-4176-9cd6-39595585e45e
+      key: springSecurity
+      value: eyJhbGciOiJIUzM4NCJ9.eyJzdWIiOiJnb3Jvc2gxNDMiLCJpYXQiOjE3OTEzNzg2MjEsImV4cCI6MTc5MTQ2NTAyMX0.UTIg3VzCOes97uG60iRlhtbPUCxmtaFWrJ9puBFnkyGynhmx3YhiKEAiyDJxYRnA
+      domain: localhost
+      path: /
+      secure: false
+      httpOnly: false
+      hostOnly: true
+environments:
+  name: Base Environment
+  meta:
+    id: env_e04cf2d7f718f146084bfaff79b899f6a699223c
+    created: 1791375854132
+    modified: 1791375885978
+    isPrivate: false
+  data:
+    baseurl: http://localhost:8080/api

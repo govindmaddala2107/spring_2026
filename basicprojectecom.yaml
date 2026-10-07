@@ -302,6 +302,24 @@ collection:
         send: true
         store: true
       rebuildPath: true
+  - url: ""
+    name: New Request
+    meta:
+      id: req_a635225bfc6846dbb39f0eabfa89e936
+      created: 1791375716762
+      modified: 1791375719182
+      isPrivate: false
+      description: ""
+      sortKey: -1791375716762
+    method: GET
+    settings:
+      renderRequestBody: true
+      encodeUrl: true
+      followRedirects: global
+      cookies:
+        send: true
+        store: true
+      rebuildPath: true
 cookieJar:
   name: Default Jar
   meta:
