@@ -42,12 +42,13 @@ public class WebSecurityConfig {
     private AuthEntryPointJwt unauthorizedHandler;
 
     /*
-    1. Here we are registering a custom JWT authentication filter as a string bean.
-    2. So this AuthTokenFilter filter will
-        - intercept the request
-        - look for authentication header
-        - authenticate the request
-    */
+     * 1. Here we are registering a custom JWT authentication filter as a string
+     * bean.
+     * 2. So this AuthTokenFilter filter will
+     * - intercept the request
+     * - look for authentication header
+     * - authenticate the request
+     */
     @Bean
     public AuthTokenFilter authenticationJwtTokenFilter() {
         return new AuthTokenFilter();
@@ -67,34 +68,45 @@ public class WebSecurityConfig {
                 .exceptionHandling((exception) -> exception.authenticationEntryPoint(unauthorizedHandler))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(requests -> requests
-                        .requestMatchers("/auth/**").permitAll()
-//                        .requestMatchers("/v3/api-docs/**").permitAll()
-//                        .requestMatchers("/swagger-ui/**").permitAll()
-//                        .requestMatchers("/public/**").permitAll()
-//                        .requestMatchers("/admin/**").permitAll()
-//                        .requestMatchers("/test/**").permitAll()
+                        .requestMatchers(
+                                "/swagger-ui.html",
+                                "/swagger-ui/**",
+                                "/v3/api-docs/**",
+                                "/swagger-resources/**",
+                                "/webjars/**",
+                                "/api/swagger-ui.html",
+                                "/api/swagger-ui/**",
+                                "/api/v3/api-docs/**",
+                                "/api/swagger-resources/**",
+                                "/api/webjars/**")
+                        .permitAll()
+                        .requestMatchers("/auth/signin", "/auth/signup").permitAll()
+                        .requestMatchers("/auth/**").authenticated()
+                        // .requestMatchers("/public/**").permitAll()
+                        // .requestMatchers("/admin/**").permitAll()
+                        // .requestMatchers("/test/**").permitAll()
                         .requestMatchers("/static/**").permitAll()
                         .anyRequest().authenticated());
 
         http.authenticationProvider(authenticationProvider());
-        // Before calling UsernamePasswordAuthenticationFilter, call authenticationJwtTokenFilter.
+        // Before calling UsernamePasswordAuthenticationFilter, call
+        // authenticationJwtTokenFilter.
         http.addFilterBefore(authenticationJwtTokenFilter(), UsernamePasswordAuthenticationFilter.class);
         return http.build();
     }
 
-//    @Bean
-//    public WebSecurityCustomizer webSecurityCustomizer() {
-//        return (web -> web
-//                .ignoring()
-//                .requestMatchers(
-//                        "/v2/api-docs/**",
-//                        "/configuration/ui",
-//                        "/swagger-resources/**",
-//                        "/configuration/security",
-//                        "/swagger-ui.html",
-//                        "/webjars/**"));
-//    }
-
+    // @Bean
+    // public WebSecurityCustomizer webSecurityCustomizer() {
+    // return (web -> web
+    // .ignoring()
+    // .requestMatchers(
+    // "/v2/api-docs/**",
+    // "/configuration/ui",
+    // "/swagger-resources/**",
+    // "/configuration/security",
+    // "/swagger-ui.html",
+    // "/webjars/**"));
+    // }
 
     @Bean
     PasswordEncoder passwordEncoder() {
@@ -112,36 +124,35 @@ public class WebSecurityConfig {
     @Autowired
     private RoleRepository roleRepository;
 
-    //    @Bean
-//    public CommandLineRunner initData() {
-//        return args -> {
-//            if (roleService.findByRoleName(AppRole.USER).isEmpty()) {
-//                roleRepository.save(new Role(AppRole.USER));
-//            }
-//
-//            if (roleService.findByRoleName(AppRole.ADMIN).isEmpty()) {
-//                roleRepository.save(new Role(AppRole.ADMIN));
-//            }
-//        };
-//    }
-//    @Bean
-//    CommandLineRunner testPassword(
-//            UserRepository userRepository,
-//            PasswordEncoder passwordEncoder) {
-//
-//        return args -> {
-//
-//            User user =
-//                    userRepository.findByUserName("gomad805523")
-//                            .orElse(null);
-//
-//            System.out.println(
-//                    passwordEncoder.matches(
-//                            "gomad@12345",
-//                            user.getPassword()
-//                    )
-//            );
-//        };
-//    }
+    // @Bean
+    // public CommandLineRunner initData() {
+    // return args -> {
+    // if (roleService.findByRoleName(AppRole.USER).isEmpty()) {
+    // roleRepository.save(new Role(AppRole.USER));
+    // }
+    //
+    // if (roleService.findByRoleName(AppRole.ADMIN).isEmpty()) {
+    // roleRepository.save(new Role(AppRole.ADMIN));
+    // }
+    // };
+    // }
+    // @Bean
+    // CommandLineRunner testPassword(
+    // UserRepository userRepository,
+    // PasswordEncoder passwordEncoder) {
+    //
+    // return args -> {
+    //
+    // User user =
+    // userRepository.findByUserName("gomad805523")
+    // .orElse(null);
+    //
+    // System.out.println(
+    // passwordEncoder.matches(
+    // "gomad@12345",
+    // user.getPassword()
+    // )
+    // );
+    // };
+    // }
 }
-

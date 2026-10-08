@@ -31,30 +31,41 @@ public class JwtUtils {
     private String jwtCookie;
 
     // Getting JWT From Headers
-//    public String getJwtFromHeader(HttpServletRequest request) {
-//        String bearerToken = request.getHeader("Authorization");
-//        logger.debug("Bearer Token: {}", bearerToken);
-//        if (bearerToken != null && bearerToken.startsWith("Bearer ")) {
-//            return bearerToken.substring(7); // Remove Bearer and return only token.
-//        }
-//        logger.debug("Bearer Token is empty");
-//        return null;
-//    }
+    // public String getJwtFromHeader(HttpServletRequest request) {
+    // String bearerToken = request.getHeader("Authorization");
+    // logger.debug("Bearer Token: {}", bearerToken);
+    // if (bearerToken != null && bearerToken.startsWith("Bearer ")) {
+    // return bearerToken.substring(7); // Remove Bearer and return only token.
+    // }
+    // logger.debug("Bearer Token is empty");
+    // return null;
+    // }
 
     // get cookie from cookies
     public String getJwtFromCookies(HttpServletRequest request) {
         Cookie cookie = WebUtils.getCookie(request, jwtCookie);
-        assert cookie != null;
-        return cookie.getValue() != null ? cookie.getValue() : null;
+        if (cookie != null) {
+            return cookie.getValue();
+        }
+
+        return null;
     }
 
     // generate cookie and send as response
-    public ResponseCookie generateJwtCookie(UserDetails userDetails){
+    public ResponseCookie generateJwtCookie(UserDetails userDetails) {
         String jwt = generateTokenFromUsername(userDetails);
         return ResponseCookie.from(jwtCookie, jwt)
-                .path("/api")
+                .path("/")
                 .maxAge(jwtExpirationMs / 1000)
                 .httpOnly(false)
+                .build();
+    }
+
+    // generate cookie and send as response
+    public ResponseCookie clearJwtCookie() {
+        return ResponseCookie.from(jwtCookie, null)
+                .path("/")
+                .maxAge(0)
                 .build();
     }
 

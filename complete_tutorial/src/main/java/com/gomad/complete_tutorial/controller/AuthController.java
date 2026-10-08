@@ -12,6 +12,7 @@ import com.gomad.complete_tutorial.security.jwt.JwtUtils;
 import com.gomad.complete_tutorial.security.services.UserDetailsImpl;
 import com.gomad.complete_tutorial.service.RoleService;
 import com.gomad.complete_tutorial.service.UserService;
+import com.gomad.complete_tutorial.utils.AuthUtil;
 import jakarta.validation.Valid;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -53,6 +54,9 @@ public class AuthController {
     @Autowired
     private PasswordEncoder passwordEncoder;
 
+    @Autowired
+    private AuthUtil authUtil;
+
     @PostMapping("/signin")
     public ResponseEntity<?> authenticateUser(@Valid @RequestBody LoginRequest loginRequest) {
         Authentication authentication;
@@ -60,9 +64,7 @@ public class AuthController {
             authentication = authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(
                             loginRequest.getUserName(),
-                            loginRequest.getPassword()
-                    )
-            );
+                            loginRequest.getPassword()));
         } catch (AuthenticationException ex) {
             Map<String, Object> map = new HashMap<>();
             map.put("message", "Bad credentials");
@@ -84,10 +86,20 @@ public class AuthController {
         List<String> roles = userDetails.getAuthorities().stream()
                 .map(GrantedAuthority::getAuthority)
                 .toList();
-        UserInfoResponse loginResponse = new UserInfoResponse(userDetails.getId(), jwtCookie.toString(), userDetails.getUsername(), roles);
+        UserInfoResponse loginResponse = new UserInfoResponse(userDetails.getId(), jwtCookie.toString(),
+                userDetails.getUsername(), roles);
         return ResponseEntity.ok()
                 .header(HttpHeaders.SET_COOKIE, jwtCookie.toString())
                 .body(loginResponse);
+    }
+
+    @PostMapping("/signout")
+    public ResponseEntity<?> signOutUser() {
+        SecurityContextHolder.clearContext();
+        ResponseCookie jwtCookie = jwtUtils.clearJwtCookie();
+        return ResponseEntity.ok()
+                .header(HttpHeaders.SET_COOKIE, jwtCookie.toString())
+                .body(new ApiResponse("User is signedout successfully", true));
     }
 
     @PostMapping("/signup")
@@ -105,13 +117,13 @@ public class AuthController {
         Set<String> strRoles = signupRequest.getRole();
         Set<Role> roles = new HashSet<>();
         if (strRoles == null) {
-            Role userRole = roleService.findByRoleName(AppRole.USER).orElseThrow(() -> new APIException("Role not found..!"));
+            Role userRole = roleService.findByRoleName(AppRole.USER)
+                    .orElseThrow(() -> new APIException("Role not found..!"));
             roles.add(userRole);
         } else {
             strRoles.forEach(role -> {
                 Role userRole = roleService.findByRoleName(
-                        AppRole.valueOf(role.toUpperCase())
-                ).orElseThrow(() -> new APIException("Role not found..!"));
+                        AppRole.valueOf(role.toUpperCase())).orElseThrow(() -> new APIException("Role not found..!"));
                 roles.add(userRole);
             });
         }
@@ -122,7 +134,15 @@ public class AuthController {
     }
 
     @GetMapping("/hello")
-    public String hello(){
+    public String hello() {
         return "Hello World";
+    }
+
+    @GetMapping("/get-email")
+    public ResponseEntity<Map<String, String>> getEmail(){
+        Map<String, String> map = new HashMap<>();
+        String email = authUtil.getUserMail();
+        map.put("email", email);
+        return new ResponseEntity<>(map, HttpStatus.OK);
     }
 }
