@@ -4482,5 +4482,146 @@
             - **SecurityContextHolder** → Stores authenticated user for the request.
             - **JWT** → Generated only after successful authentication and returned to the client.
 
+- ### Swagger Setup:
+    - dependency needed is **springdoc** and check for feasible version based on springboot version.
+    - In WebSecurityConfig, add 
+        ```java
+        .requestMatchers(
+                "/swagger-ui.html",
+                "/swagger-ui/**",
+                "/v3/api-docs/**",
+                "/swagger-resources/**",
+                "/webjars/**",
+                "/api/swagger-ui.html",
+                "/api/swagger-ui/**",
+                "/api/v3/api-docs/**",
+                "/api/swagger-resources/**",
+                "/api/webjars/**")
+        .permitAll()
+        ```
+    - Now access swagger on **http://localhost:8080/api/swagger-ui/index.html**
+        ![alt text](images/SwaggerBasic.png)
+    - ### Configuring settings:
+        - In Swagger, we can't use cookies, so for that we will accept jwt from header.
+        - Code changes are:
+            ```java
+            // JwtUtils.java
+            public class JwtUtils{
+                public String getJwtFromHeader(HttpServletRequest request) {
+                    String bearerToken = request.getHeader("Authorization");
+                    logger.debug("Bearer Token: {}", bearerToken);
+                    if (bearerToken != null && bearerToken.startsWith("Bearer ")) {
+                        return bearerToken.substring(7); // Remove Bearer and return only token.
+                    }
+                    logger.debug("Bearer Token is empty");
+                    return null;
+                }
+
+                // get cookie from cookies
+                public String getJwtFromCookies(HttpServletRequest request) {
+                    Cookie cookie = WebUtils.getCookie(request, jwtCookie);
+                    if (cookie != null) {
+                        return cookie.getValue();
+                    }
+
+                    return null;
+                }
+            }
+
+            // In AuthTokenFilter.java
+            public class AuthTokenFilter extends OncePerRequestFilter {
+
+                private String parseJwt(HttpServletRequest request) {
+                    String jwtFromCookie = jwtUtils.getJwtFromCookies(request);
+                    logger.debug("AuthTokenFilter jwtCookie: {}", jwtFromCookie);
+                    if (jwtFromCookie != null) {
+                        return jwtFromCookie;
+                    }
+
+                    String jwtFromHeader = jwtUtils.getJwtFromHeader(request);
+                    logger.debug("AuthTokenFilter jwtFromHeader: {}", jwtFromHeader);
+                    return jwtFromHeader;
+                }
+            }
+            ```
+        - Now we will make swagger settings to send token in Bearer token:
+            ```java
+            package com.gomad.complete_tutorial.config;
+
+            import io.swagger.v3.oas.models.Components;
+            import io.swagger.v3.oas.models.OpenAPI;
+            import io.swagger.v3.oas.models.security.SecurityRequirement;
+            import io.swagger.v3.oas.models.security.SecurityScheme;
+            import org.springframework.context.annotation.Bean;
+            import org.springframework.context.annotation.Configuration;
+
+            @Configuration
+            public class SwaggerConfig {
+
+                @Bean
+                public OpenAPI customOpenAPI() {
+                    // this tells Swagger UI that we want to make use of JWT tokens which will be passed in HTTP authorization header.
+                    SecurityScheme bearerScheme = new SecurityScheme()
+                            .type(SecurityScheme.Type.HTTP)
+                            .scheme("bearer")
+                            .bearerFormat("JWT")
+                            .description("JWT Bearer Token");
+                    String tokenList = "Bearer Authentication";
+                    SecurityRequirement bearerRequirement = new SecurityRequirement()
+                            .addList(tokenList);
+
+                    return new OpenAPI()
+                            .components(new Components()
+                                    .addSecuritySchemes(tokenList, bearerScheme))
+                            .addSecurityItem(bearerRequirement);
+                }
+            }
+            ```
+            ![alt text](images/SwaggerWithAuth.png)
+        - Now get token from insomnia:
+            ![alt text](images/SwaggerTokenFetching.png)
+        - Click **Authorize** and add token:
+            ![alt text](images/SwaggerTokenAuthorize.png)
+        - Execute any url:
+            ![alt text](images/SwaggerWithAuthHello.png)
+
+    - Swagger Annotations:
+        - Before Tags:
+            ![alt text](images/SwaggerBeforeTags.png)
+        - After Tag()
+            - Adding below ones on top of any controller, it will group controller into group.
+            ```java
+            @Tag(name = "User utils", description = "Helps in getting all details of User")
+            ```
+            ![alt text](images/SwaggerAfterTags.png)
+        
+### CORS:
+- Code is:
+    ```java
+    package com.gomad.complete_tutorial.config;
+
+    import org.springframework.context.annotation.Bean;
+    import org.springframework.web.servlet.config.annotation.CorsRegistry;
+    import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
+
+    public class WebConfig implements WebMvcConfigurer {
+
+        @Bean
+        public WebMvcConfigurer corsConfigure(){
+            return new WebMvcConfigurer() {
+                @Override
+                public void addCorsMappings(CorsRegistry registry) {
+    //                WebMvcConfigurer.super.addCorsMappings(registry);
+                    registry.addMapping("/**")
+                            .allowedOrigins("http://localhost:3000/")
+                            .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
+                            .allowedHeaders("*")
+                            .allowCredentials(true);
+                }
+            };
+        }
+    }
+    ```
+
 
 

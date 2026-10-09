@@ -1,6 +1,6 @@
 package com.gomad.complete_tutorial.exceptions;
 
-import com.gomad.complete_tutorial.payload.ApiResponse;
+import com.gomad.complete_tutorial.payload.CustomApiResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
@@ -28,14 +28,14 @@ public class MyGlobalExceptionHandler {
     }
 
     @ExceptionHandler(ResourceNotFoundException.class)
-    public ResponseEntity<ApiResponse> myResourceNotFoundException(ResourceNotFoundException e){
-        ApiResponse apiResponse = new ApiResponse(e.getMessage(), false);
+    public ResponseEntity<CustomApiResponse> myResourceNotFoundException(ResourceNotFoundException e){
+        CustomApiResponse apiResponse = new CustomApiResponse(e.getMessage(), false);
         return new ResponseEntity<>(apiResponse, HttpStatus.NOT_FOUND);
     }
 
     @ExceptionHandler(APIException.class)
-    public ResponseEntity<ApiResponse> myAPIException(APIException e){
-        ApiResponse apiResponse = new ApiResponse(e.getMessage(), false);
+    public ResponseEntity<CustomApiResponse> myAPIException(APIException e){
+        CustomApiResponse apiResponse = new CustomApiResponse(e.getMessage(), false);
         return new ResponseEntity<>(apiResponse, HttpStatus.BAD_REQUEST);
     }
 }

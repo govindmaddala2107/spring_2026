@@ -23,4 +23,14 @@ public class AuthUtil {
         }
         return null;
     }
+
+    public String getUserName(){
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if(auth != null){
+            User user = userRepository.findByUserName(auth.getName())
+                    .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+            return user.getUserName();
+        }
+        return null;
+    }
 }
