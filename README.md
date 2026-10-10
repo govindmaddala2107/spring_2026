@@ -1844,6 +1844,13 @@
     - ModelMapper analyzes your object model to intelligently determine how data should be mapped. There's no manual mapping needed. 
     - ModelMapper does most of the work for you, automatically projecting and flattening complex models.
     - Dependency needed is **modelmapper**.
+        ```xml
+        <dependency>
+            <groupId>org.modelmapper</groupId>
+            <artifactId>modelmapper</artifactId>
+            <version>3.2.4</version>
+        </dependency>
+        ```
         ```java
         package com.gomad.h2_jpa.config;
 
@@ -2231,4 +2238,2390 @@
     - ###### Bidirectional Relationship.
         - In this relationship, where both the entities are aware of each other that relationship exists.
         - Example: Again Order and Order details entities. In database terms you can navigate the relationship from either of the entities.
+- ##### One to One Coding:
+    - Here we setup SocialUser to SocialProfile.
+    - SocialUser:
+        ```java
+        package com.gomad.social_media.models;
+
+        @Entity
+        public class SocialUser {
+
+            @Id
+            @GeneratedValue(strategy = GenerationType.IDENTITY)
+            private Long id;
+        }
+        ```
+    - SocialProfile
+        ```java
+        package com.gomad.social_media.models;
+
+        @Entity
+        public class SocialProfile {
+
+            @Id
+            @GeneratedValue(strategy = GenerationType.IDENTITY)
+            private Long id;
+
+            @OneToOne
+            private SocialUser user;
+        }
+        ```
+    - Here using **@OneToOne**, we have established One-to-One relationship between SocialUser and SocialProfile.
+        ![alt text](images/One2OneBasic.png)
+    - Here SOCIAL_PROFILE has
+        - ID [of SOCIAL_PROFILE]
+        - USER_ID [acts as foreign key for SOCIAL_USER] and this we can control using **JoinColumn**.
+    - Code change is:
+        ```java
+        @OneToOne
+        @JoinColumn(name = "social_user")
+        private SocialUser user;
+        ```
+        ![alt text](images/One2OneJoinColumn.png)
+    - Now **USER_ID** changed to **SOCIAL_USER** corresponding to **social_user** given in **JoinColumn**.
+    - ###### Bi-Directional in One-to-One relationship.
+        - Add below code in SocialUser and create one-to-one with SocialProfile
+            ```java
+            @OneToOne
+            @JoinColumn(name = "social_profile")
+            private SocialProfile socialProfile;
+            ```
+            ![alt text](images/One2OneBiDirectional.png)
+        - Issue: Now each table has one foreign key to another. Issue is there are redundant foreign key columns. And both the entities are managing the relationship independently and there could be confusion when working with this data as queries might get error prone as to which foreign key to use.
+            - SO here we have to make any one as owner and here we make **SocialUser** as owner. Code changes are:
+                ```java
+                // In SocialProfile:
+                @OneToOne(mappedBy = "socialProfile")
+                // @JoinColumn(name = "social_user")
+                private SocialUser user;
+
+                // In SocialUser: No Code Changes
+                @OneToOne
+                @JoinColumn(name = "social_profile")
+                private SocialProfile socialProfile;
+                ```
+            - So in SocialProfile:
+                - **mappedBy = "socialProfile"** is added and this **socialProfile** should be as same as **private SocialProfile socialProfile;**
+                - Remove **JoinColumn** since no foreign key will come in SocialProfile.
+                ![alt text](images/One2OneBiDirectionalWithOneForeignKeyUserOwner.png)
+                - Now no **foreign key** in Social_Profile.
+            - If you want no foreign key in SocialUser, then changes are:
+                ```java
+                // In SocialProfile: No Code Changes
+                @OneToOne
+                @JoinColumn(name = "social_user")
+                private SocialUser user;
+
+                // In SocialUser: All Changes here only
+                @OneToOne(mappedBy = "user")
+                // @JoinColumn(name = "social_profile")
+                private SocialProfile socialProfile;
+                ```
+                ![alt text](images/One2OneBiDirectionalWithOneForeignKeyProfileOwner.png)
+
+- ##### One to Many & Many to One Relationships:
+    - [User] ===> [Posts]
+    - Coding part is:
+    - Post.java
+        ```java
+        package com.gomad.social_media.models;
+
+        @Entity
+        public class Post {
+
+            @Id
+            @GeneratedValue(strategy = GenerationType.IDENTITY)
+            private Long id;
+        }
+        ```
+    - SocialUser.java
+        ```java
+        package com.gomad.social_media.models;
+
+        import jakarta.persistence.*;
+
+        import java.util.ArrayList;
+        import java.util.List;
+
+        @Entity
+        public class SocialUser {
+
+            @Id
+            @GeneratedValue(strategy = GenerationType.IDENTITY)
+            private Long id;
+
+            @OneToOne(mappedBy = "user")
+            private SocialProfile socialProfile;
+
+            @OneToMany
+            private List<Post> posts = new ArrayList<>();
+        }
+        ```
+        ![alt text](images/OneToManyBasicOne.png)
+    - It creates some extra table **SOCIAL_USER_POSTS** is created automatically with columns: 
+        - POSTS_ID [a foreign key linking to posts]
+        - SOCIAL_USER_ID [a foreign key linking yo social user]
+        - This table is having foreign key relationship to the post as well as to user over here.
+        - This extra table can be removed by making either Post or SocialUser as owner.
+    - Code change:
+        ```java
+        // SocialUser.java
+        @Entity
+        public class SocialUser {
+
+            @OneToMany(mappedBy = "socialUser")
+            private List<Post> posts = new ArrayList<>();
+        
+        }
+
+        // Post.java
+        @Entity
+        public class Post {
+
+            @Id
+            @GeneratedValue(strategy = GenerationType.IDENTITY)
+            private Long id;
+
+            @ManyToOne // Means Many Posts mapped to one SocialUser
+            @JoinColumn(name = "user_id")
+            private SocialUser socialUser;
+        }
+        ```
+    - Now that extra table is removed like as in image:
+        ![alt text](images/OneToManyWithNoExtraTable.png)
+        - Image understanding: One User, with user_id, posts a post, with post_id and it have user_id, which again tracks back to User only.
+    - With this, system can know how many posts a user has done and which post is being done by which user. So it is a **bidirectional relationship**. 
+
+- ##### Many to Many Relationship:
+    - Here we user [User(s)] <===> [Group(s)] i.e 
+        - One User can be in multiple Groups and 
+        - One Group can have multiple Users.
+    - Create **SocialGroup.java** 
+        ```java
+        @Entity
+        public class SocialGroup {
+
+            @Id
+            @GeneratedValue(strategy = GenerationType.IDENTITY)
+            private Long id;
+
+            @ManyToMany(mappedBy = "socialGroups")
+            private Set<SocialUser> socialUsers =  new HashSet<>();
+        }
+        ```
+    - We need a third table that needs to be created where this relationship is managed.
+    - Many-to-Many relationship can be managed by following process. 
+        - In SocialGroup, we need to add following annotation. [Here we're making SocialUser as owner]
+            ```java
+            @ManyToMany(mappedBy = "socialGroups")
+            private Set<SocialUser> socialUsers =  new HashSet<>();
+            ```
+        - In SocialUser, 
+            ```java
+            @ManyToMany
+            @JoinTable(
+                    name = "user_group",
+                    joinColumns = @JoinColumn(name = "user_id"),
+                    inverseJoinColumns = @JoinColumn(name = "group_id")
+            )
+            private Set<SocialGroup> socialGroups = new HashSet<>();
+            ```
+        - In Many-to-Many, we use **Set** instead of **List** to avoid duplicacy.
+    - ###### @JoinTable
+        - This annotation help us to few things:
+            1. It will make use of the attributes within join table. And there are few attributes like
+                join column and inverse join column.
+            2. JoinColumn is used to define the foreignKey for the entity where you're defining the relationship.
+            3. Inverse Join Column that defines the foreign key for the other entity that you're defining the relationship.
+
+        - Finally:
+            1. Name of the joint table is "user_group" and key for this table, which means like we're making use of join column
+                - with joinColumns = @JoinColumn(name = "user_id"), we're saying that foreign key for the entity where we're
+                defining relationship, where in social_users [Class here is SocialUser]
+                - with inverseJoinColumns = @JoinColumn(name = "group_id"), it means foreign key for the other side of the relationship is group_id
+        ![alt text](images/ManyToManySetp.png)
+    - Ps: The relationship between the social group and social user is being managed by user_group table.
+    - So Many-to-Many relationship is between SocialUser and SocialGroup and
+        - join table between them is user_group and
+        - joint-column of SocialUser is user_id
+        - joint-column of SocialGroup is group_id
+
+### CommandLineRunner:
+- After application launched, we can run some scripts or loading data into database, here it is h2-console.
+- Here I have created **Employee** [Class] entity and EmployeeRepository [Interface] and want to add some data. 
+- Now I have created **DataInitializer**:
+    ```java
+    package com.gomad.social_media.configuration;
+
+    import com.gomad.social_media.models.Employee;
+    import com.gomad.social_media.repository.EmployeeRepository;
+    import org.springframework.boot.CommandLineRunner;
+    import org.springframework.context.annotation.Bean;
+    import org.springframework.context.annotation.Configuration;
+
+    @Configuration
+    public class DataInitializer {
+
+        private final EmployeeRepository employeeRepository;
+
+        public DataInitializer(EmployeeRepository employeeRepository) {
+            this.employeeRepository = employeeRepository;
+        }
+
+        @Bean
+        public CommandLineRunner initDatabase(EmployeeRepository employeeRepository) {
+            return args -> {
+                Employee employee1 = new Employee();
+                employee1.setFirstName("Amar");
+                employee1.setLastName("Deepak");
+                employeeRepository.save(employee1);
+            };
+        }
+    }
+    ```
+- **public CommandLineRunner initDatabase(){ return args -> {}}** runs after application launch. Here I have added employee data into h2 and on launching h2-console, 
+    ![alt text](images/CommandLineRunnerExample.png)
+
+#### HashCode:
+- Sometimes there is a hash code calculation involved and it keeps calling it recursively. 
+- In that case, what we need to do is we need to over-ride it with our own implementation.
+- Also we have to make sure that the hash code calculation in our entity class doesn't involve calling hash code of collections like HashSet, Set recursively. 
+- In SocialUser and SocialGroup, since Set and HashSet are used, there we keep 
+    ```java
+    @Override
+    public int hashCode(){
+        return Objects.hash(id);
+    }
+
+    // Now code becomes like 
+    public class SocialGroup {
+
+        @Id
+        @GeneratedValue(strategy = GenerationType.IDENTITY)
+        private Long id;
+
+        @ManyToMany(mappedBy = "socialGroups")
+        private Set<SocialUser> socialUsers =  new HashSet<>();
+
+        @Override
+        public int hashCode(){
+            return Objects.hash(id);
+        }
+    }
+    ```
+
+#### Circular References | Using @JsonIgnore:
+- In coding, here SocialUser, SocialProfile, Posts and SocialGroups, one has reference to another. 
+- Like, now SocialUser and SocialProfile have reference to each other:
+    ```java
+    public class SocialUser{
+        @OneToOne(mappedBy = "user")
+        private SocialProfile socialProfile;
+
+        @OneToMany(mappedBy = "socialUser")
+        private List<Post> posts = new ArrayList<>();
+
+        @ManyToMany
+        private Set<SocialGroup> socialGroups = new HashSet<>();
+
+    }
+
+    public class SocialProfile {
+
+        @Id
+        @GeneratedValue(strategy = GenerationType.IDENTITY)
+        private Long id;
+
+        @OneToOne
+        @JoinColumn(name = "social_user")
+        private SocialUser user;
+    }
+    ```
+- It results in infinite recursive looping. We will get some response like below but there will be StackOverFlow error and API response to get all SocialUsers as below:
+    ```json
+    [
+        {
+            "id": 1,
+            "socialProfile": {
+                "id": 1,
+                "user": {
+                    "id": 1,
+                    "socialProfile": {
+                        "id": 1,
+                        "user": {
+                            "id": 1,
+                            "socialProfile": {
+                                "id": 1,
+                                "user": {
+                                    "id": 1,
+                                    "socialProfile": {
+                                        "id": 1,
+                                        "user": {
+                                            "id": 1,
+                                            "socialProfile": {
+                                                "id": 1,
+                                                "user": {
+                                                    "id": 1,
+                                                    "socialProfile": {
+                                                        "id": 1,
+                                                        "user": {
+                                                            "id": 1,
+                                                            "socialProfile": {
+                                                                "id": 1,
+                                                                "user": {
+                                                                    "id": 1,
+                                                                    "socialProfile": {
+                                                                        "id": 1,
+                                                                        "user": {
+                                                                            "id": 1,
+                                                                            "socialProfile": {
+                                                                                "id": 1,
+                                                                                "user": {
+                                                                                    "id": 1,
+                                                                                    "socialProfile": {
+                                                                                        "id": 1,
+                                                                                        "user": {
+                                                                                            "id": 1,
+                                                                                            "socialProfile": {
+                                                                                                "id": 1,
+                                                                                                "user": {}
+                                                                                            }
+                                                                                        }
+                                                                                    }
+                                                                                }
+                                                                            }
+                                                                        }
+                                                                    }
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    ]
+    ```
+
+- Now SocialUser is owner, so on other parts, here they are SocialProfile, Posts and SocialGroups, we will add **@JsonIgnore** on field of reference of SocialUser field like in SocialProfile:
+    ```java
+    public class SocialProfile {
+    
+        @OneToOne
+        @JoinColumn(name = "social_user")
+        @JsonIgnore
+        private SocialUser user;
+    }
+
+    // Add @JsonIgnore annotation on top of SocialUser field in the Classes whose references are getting used in SocialUser.
+
+    ```
+- With @JsonIgnore addition, now response is so proper and it is like
+    ```json
+    [
+        {
+            "id": 1,
+            "socialProfile": {
+                "id": 1
+            },
+            "posts": [
+                {
+                    "id": 1
+                },
+                {
+                    "id": 2
+                }
+            ],
+            "socialGroups": [
+                {
+                    "id": 1
+                },
+                {
+                    "id": 2
+                }
+            ]
+        },
+        {
+            "id": 2,
+            "socialProfile": {
+                "id": 2
+            },
+            "posts": [
+                {
+                    "id": 3
+                }
+            ],
+            "socialGroups": [
+                {
+                    "id": 1
+                },
+                {
+                    "id": 3
+                }
+            ]
+        },
+        {
+            "id": 3,
+            "socialProfile": {
+                "id": 3
+            },
+            "posts": [
+                {
+                    "id": 4
+                },
+                {
+                    "id": 5
+                }
+            ],
+            "socialGroups": [
+                {
+                    "id": 2
+                },
+                {
+                    "id": 3
+                }
+            ]
+        }
+    ]
+    ```
+- With @JsonIgnore, we can remove or get rid of infinite nesting of objects when we're dealing with **bidirectional relationship**.
+- When you add **@JsonIgnore** to any side of the relationship, it tells to ignore that side from serialization and deserialization process from object to JSON and vice versa.
+
+### Cascading:
+- Now SocialUser is dependent on SocialProfile, SocialGroups and Posts, let's say I am adding SocialUser directly, then I will get errors like:
+    - AssertionFailure: non-transient entity has a null id;
+    - StaleObjectStateException: Row was already updated or deleted by another transaction for entity, SocialUser with id '4'.
+        - Don't send ids' in the payload since we are already handling using strategy.
+    - request body is:
+        ```json
+        {
+            "socialProfile": {
+                "description": "Test"
+            }
+        }
+        ```
+- So in this case, either we have to create SocialProfile first and then map it for SocialUser and then have to save SocialUser or we can specify some instructions to how to save it automatically.
+    - So when we're trying to save SocialUser, we will try to save SocialProfile and this is called Cascading.
+- So whenev you're performing an operation on one entity and you automatically want other operations to be propagated or cascaded to the other entities as well that are associated to that entity, then this is called as **Cascading**.
+- There are many types of Cascading.
+    - PERSIST:
+        - If you persist or save an entity, operation is cascaded to related entites as well.
+        - So if you save SocialUser, then it will automatically create and save SocialProfile as well.
+    - MERGE:
+        - If you merge the state of an entity and cascade the operation to related entities.
+    - REMOVE:
+        - If you remove an entity then related entities will get deleted as well.
+        - Here, if I want to delete SocialUser, then it's related SocialProfile, Posts and SocialGroups releated data as well has to be deleted.
+    - REFRESH:
+        - If you refresh an entity from the database, cascade the operation to the related entites as well.
+    - DETACH:
+        - If you want to detach an entity from persistence context,so you want all the related entities also to be cascaded for this.
+    - ALL:
+        - ALL means "All the above Operations", means if you do any of the entities, you want them to be cascaded to the related entities.
+            - If you save/delete one entity, related entity to get saved/deleted as well.
+- #### CascadeType.ALL
+    - Now I changed **@OneToOne** to **@OneToOne(cascade = CascadeType.ALL)**
+        ```java
+        public class SocialUser {
+        
+            @Id
+            @GeneratedValue(strategy = GenerationType.IDENTITY)
+            private Long id;
+
+            @OneToOne(cascade = CascadeType.ALL)
+            @JoinColumn(name = "social_profile")
+            private SocialProfile socialProfile;
+        }
+        ```
+    - With the changes, now User and Profile will get created:
+        - /socialusers/add
+            - RequestBody:
+                ```json
+                {
+                    "socialProfile": {
+                        "description": "Test"
+                    }
+                }
+                ```
+            - ResponseBody:
+                ```json
+                {
+                    "id": 1,
+                    "socialProfile": {
+                        "id": 1,
+                        "description": "Test"
+                    },
+                    "posts": null,
+                    "socialGroups": null
+                }
+                ```
+        - /socialusers:
+            - Response is:
+                ```json
+                [
+                    {
+                        "id": 1,
+                        "socialProfile": {
+                            "id": 1,
+                            "description": "Test"
+                        },
+                        "posts": [],
+                        "socialGroups": []
+                    }
+                ]
+                ```
+    - PS: Don't send ids' in the payload since we are already handling using strategy. 
+    - Issues with null and using set**:
+        - Sometimes /socialusers comes as:
+            ```json
+            [
+                {
+                    "id": 1,
+                    "socialProfile": null,
+                    "posts": [],
+                    "socialGroups": []
+                }
+            ]
+            ```
+        - This can be handled by setting some custom setters. Lombok setters just assign values simply. So in this case, we need to create own setters. [For us no need of setters, it is working but only for future references, I have added]
+            ```java
+
+            // In SocialUser, setter for SocialProfile:
+            public void setSocialProfile(SocialProfile socialProfile){
+                socialProfile.setUser(this);
+                this.socialProfile = socialProfile;
+            }
+
+            // In SocialProfile, setter for SocialUser: 
+            public void setSocialUser(SocialUser socialUser){
+                this.user = socialUser;
+                if(socialUser.getSocialProfile() != this){
+                    socialUser.setSocialProfile(this);
+                }
+            }
+            ```
+
+- #### CascadeType.PERSIST
+    - Now it works only to save but don't delete. On saving **SocialUser** by providing **SocialProfile**, both will get created in database.
+    - But on deleting **SocialUser**, we will get error like below and it is absolutely correct.
+        - ```org.hibernate.TransientPropertyValueException: Persistent instance of 'com.gomad.social_media.models.SocialProfile' references an unsaved transient instance of 'com.gomad.social_media.models.SocialUser' (persist the transient instance before flushing) [com.gomad.social_media.models.SocialProfile.user -> com.gomad.social_media.models.SocialUser]```
+
+- #### Multiple Cascade types:
+    - Now I don't want **CascadeType.ALL** but want I want multiple ones then we have to give like
+        ```java
+        @OneToOne(cascade = { CascadeType.PERSIST, CascadeType.REMOVE})
+        ```
+
+### FetchType
+- FetchType plays a crucial role in defining how and when related entities are loaded from the database in relation to the parent entity.
+- There might be scenarios like where we might or might not want to load the data from the child tables when parent entity is fetched.
+- In these scenarios, FetchType comes into picture and is of 2 types:
+    - FetchType.LAZY
+        - This is when the entities are not loaded immediately with the parent entity. 
+        - Instead they're loaded on demand, which means they only get loaded when they're accessed for the first time in the code.
+        - This approach is helpful in improving performance, especially when the related entities are not needed immediately.
+    - FetchType.EAGER
+        - Means related entities are loaded simultaneously with parent entities.
+        - This can be convenient when we need related entities to get loaded immedialtely after the loading of parent entity.
+        - However, it can lead to performance issues if not used in the right way.
+- Default FetchTypes in relationship:
+    - Lazy: [Ends with Many]
+        - OneToMany
+        - ManyToMany
+    - Eager: [Ends with One]
+        - ManyToOne
+        - OneToOne
+- Coding:
+    - In application.properties, add:
+        ```
+        spring.jpa.show-sql=true
+        spring.jpa.properties.hibernate.format_sql=true
+        ```
+    - In DataInitializer.java
+        ```java
+        @Bean
+        public CommandLineRunner initDatabase(EmployeeRepository employeeRepository) {
+            System.out.println("FetchType checking");
+            socialUserRepository.findById(1L);
+        }
+    - On console:
+        ```
+        FetchType checking
+        Hibernate: 
+            select
+                su1_0.id,
+                sp1_0.id,
+                sp1_0.description 
+            from
+                social_user su1_0 
+            left join
+                social_profile sp1_0 
+                    on sp1_0.id=su1_0.social_profile 
+            where
+                su1_0.id=?
+        ```
+    - If we see here, only SocialUser and SocialProfile are coming because
+        - SocialUser: because we're querying for this.
+        - SocialProfile: It is OneToOne relationship and it is eager.
+- Now I made ManyToMany as Eager by 
+    ```java
+    // In SocialUser.java for SocialGroup field deliberately I made it to Eager:
+
+    @ManyToMany(fetch = FetchType.EAGER)
+    private Set<SocialGroup> socialGroups = new HashSet<>();
+    ```
+    - Now on console:
+        ```
+        FetchType checking
+        Hibernate: 
+            select
+                su1_0.id,
+                sg1_0.user_id,
+                sg1_1.id,
+                sp1_0.id,
+                sp1_0.description 
+            from
+                social_user su1_0 
+            left join
+                user_group sg1_0 
+                    on su1_0.id=sg1_0.user_id 
+            left join
+                social_group sg1_1 
+                    on sg1_1.id=sg1_0.group_id 
+            left join
+                social_profile sp1_0 
+                    on sp1_0.id=su1_0.social_profile 
+            where
+                su1_0.id=?
+        ```
+- Here now we could see querying of SocialGroup [sg] also.
+
+### Spring Security:
+- ##### Importance of Securtiy:
+    - Privacy Protection
+    - Trust
+    - Integrity
+    - Compliance
+- ##### Role of Spring Security within the Spring Ecosystem
+    - Authentication
+    - Authorization
+- ##### Authentication:
+    - It is proving who you are.
+    - It means logging into the system.
+- ##### Authorization
+    - It is about what you're allowed to do after you've proven who you are.
+    - It means you get some roles/permissions to do particular things, for others you won't get, then you're un-authorized even if you're authenticated.
+- ##### Key Security Principles:
+    - Least Privileges: 
+        - Users and Process should have minimum level of access or permissions to perform certain taks.
+    - Secure by Design:
+        - Security consideration should be integrated into the design phase of software development rather than adding it as an afterthought.
+    - Fail-Safe Defaults:
+        - Systems should be designed with secure defaults, meaning they should operate securely out of the box without requiring additional configuration.
+    - Secure Communication:
+        - So whatever communication you're doing, transmitting data over the network, it should be encrypted and should prevent any interception over there.
+    - Input Validation:
+        - All the input data from the external APIs and everything should be validated to provent any sort of attacks like SQL injection and so on.
+    - Auditing and Logging:
+        - Auditing and Logging mechanisms should be done to record the events related to security and all the actions that are being performed in system.
+    - Regular Updates & Patch Management:
+        - Keeping software dependencies, libraries, frameworks up to date with latest security patches & fixes so that vulnerabilities will be less.
+- ##### Working of Spring Security | Flow & Internal Details:
+    - Flow chart is
+    ![alt text](images/SpringSecurityFlowChart.png)
+    - Filters come before the controllers.
+    - If Spring Security is configured in project, then in filters you'll have **Authentication filter**.
+    - Authentication filter will intercept the authentication request
+        - grabs username and password and create a **authentication object**
+        - Then this **authentication object** will be handed over to **Authentication Manager**
+    - **Authentication Manager** is someone who decides what to do with these credentials i.e it will delegate tasks like authenticating the user to someone else and it is **Authentication Provider**.
+    - **Authentication Provider** is someone who is responsible for checking whether the given username and password are correct or not.
+        - for authenticating provider to validate the credentials, it will need 2 things
+            - PasswordEncoder: 
+                - User credentials are always encoded or encrypted in payload, to decrypt those, we need some sort of processing where **PasswordEncoder** helps us.
+            - UserDetailsService:
+                - We get the user details from the database.
+        - Using user details and password encoder, AuthenticationProvider do authentication and on successful authentication, then authentication object will be populated with more details and rules as per the requirement and will be handed over it back to the **AuthenticationManager**.
+        - AuthenticationManager returns that object back to AuthenticationFilter and then **Security Context** will be set.
+    - **Security Context** is a sort of context, wherein the information about the authentication is strored. It will be available throughout the duration of the request.
+    - **DaoAuthenticationProvider** is one of the common authentication providers used.
+        - This is used when you wish to validate the users against the database.
+        - It relies on **UserDetailsService** to fetch user details and then compare it with the provided credentials against these details.
+        - There are other providers depending on where the user details are coming and some are: 
+            - **In-memory authentication provider** which can be used when we are storing data in in-memory instead of database.
+            - **LDAP authentication provider** [Light weight Directory Access Protocol] for LDAP integration.
+            - JDBC Authentication provider.
+    - In DaoAuthenticationProvider flow is like:
+        - AuthenticationManager calls **authenticate()** to access **AuthenticationProvider(DaoAuthenticationProvider)**.
+        - AuthenticationProvider calls 
+            - **matches()** for **PasswordEncoder**
+            - **loadByUsername()** for **UserDetailsService**
+        - UserDetailsService calls database by **findByUsername()**
+- ##### Spring Security Setup
+    - Dependency needed is **spring-boot-starter-security**.
+    - In Springboot, when we just add the dependency, it will automatically secure all the endpoints.
+    - Like I setup **localhost:8080/home**
+        ```java
+        @RestController
+        public class UserController {
+
+            @GetMapping("/hello")
+            public String hello() {
+                return "Hello World";
+            }
+        }
+        ```
+    -  Now when I try to access /home, it will redirect to "http://localhost:8080/login".
+        ![alt text](images/SpringSecurityLogin.png)
+    - So here, username is **user** and a new password will be generated always and prints on console like:
+        - Using generated security password: a54d7f8b-d54d-4b25-807e-01e90cf0e74b
+        ![alt text](images/SpringSecurityHelloResponse.png)
+    - Logout url is **http://localhost:8080/logout**
+    - This authentication provided by SpringSecurity is **Form-based authentication**.
+    - In application.properties, we can make changes:
+        - spring.security.user.name=admin
+        - spring.security.user.password=test
+    - Now username is admin and password is test.
+- ##### Over-riding Security Filter
+    - Press Shift button twice and check for **SpringBootWebSecurityConfiguration** and if you're unable to find this, in IntelliJ, make sure like below image
+    ![alt text](images/IntelliJSettings.png)
+    In Spring Boot 4.0.1, the class SpringBootWebSecurityConfiguration no longer exists.
+    - Earlier versions had visible classes like **SpringBootWebSecurityConfiguration** and **WebSecurityConfigurerAdapter**. These have been removed in newer versions.
+    - Now, default security is provided automatically by **SecurityAutoConfiguration**.
+    - Spring internally creates a **SecurityFilterChain** bean that enables:
+        -  Authentication for all requests
+        -  Form-based login
+        -  HTTP Basic authentication
+    - This is why you cannot search and find a specific class **SpringBootWebSecurityConfiguration** anymore.
+    - When you define your own **SecurityFilterChain** bean, Spring Boot disables the default one automatically. This is the recommended and correct approach now. So:
+        -  Old class -> removed
+        -  New mechanism -> auto-configured SecurityFilterChain
+        -  Custom security -> define your own SecurityFilterChain bean
+    - Code to implement **SecurityFilterChain** is:
+        ```java
+        package com.gomad.spring_security;
+
+        @Configuration
+        @EnableWebSecurity
+        public class SecurityConfig {
+            @Bean
+            SecurityFilterChain defaultSecurityFilterChain(HttpSecurity http) throws Exception {
+
+                // it will authenticate every request and Allows restricting access based upon the HttpServletRequest using RequestMatcher implementations (i.e. via URL patterns).
+                http.authorizeHttpRequests((requests) -> requests.anyRequest().authenticated());
+                
+                // The most basic configuration defaults to automatically generating a login page at the URL "/login", redirecting to "/login?error" for authentication failure.
+                // This is form based. Username and Password will be sent as Payload.
+                http.formLogin(Customizer.withDefaults());
+
+                // to configure HTTP Basic authentication for an application.
+                // No Payload
+                http.httpBasic(Customizer.withDefaults());
+                
+                // Builds the object and returns
+                return http.build();
+            }
+        }
+        ```
+    - If I comment all those, then default security will be by-passed and I can access "/hello".
+- ##### Stateless Setup:
+    - With above code, in response we will get cookies like as below:
+        ```java
+        @Configuration
+        @EnableWebSecurity
+        public class SecurityConfig {
+
+            @Bean
+            SecurityFilterChain defaultSecurityFilterChain(HttpSecurity http) throws Exception {
+                http.authorizeHttpRequests((requests) -> requests.anyRequest().authenticated());
+
+                // To make APIs stateless
+                http.sessionManagement(session ->
+                        session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
+                // To make APIs stateless
+
+                http.httpBasic(Customizer.withDefaults());
+                return http.build();
+            }
+        }
+        ```
+        ![alt text](images/SpringSecurityStatefulAPIS.png)
+    - With some code settings, we can make APIs stateless.
+        ![alt text](images/SpringSecurityStatelessAPIS.png)
+
+- ##### In-memory Authentication with Spring Securtiy:
+    - currently, username and password are setting in application.properties and also only 1 username can be set. 
+    - But for testing purpose, we add more users in memory like as below:
+        ```java
+        @Configuration
+        @EnableWebSecurity
+        public class SecurityConfig {
+            @Bean
+            public UserDetailsService userDetailsService(){
+                UserDetails user = User.withUsername("user")
+                        .password("{noop}testing@123") // using 
+                    //  .password("testing@123") // password will be stored in encoded format
+                        .roles("USER")
+                        .build();
+
+                UserDetails admin = User.withUsername("admin")
+                        .password("{noop}testing#123")
+                        .roles("ADMIN")
+                        .build();
+
+                return new InMemoryUserDetailsManager(user, admin);
+            }
+        }
+        ```
+    - adding **{noop}** before password means to tell spring to save password in plain text.
+    - InMemoryUserDetailsManager is a class and it is implementation of **UserDetailsService** interface.
+    - Now we have 2 users namely: 
+        - [user:testing@123] and 
+            ![alt text](images/SpringSecurityInMemoryUser.png)
+        - [admin:testing#123]
+            ![alt text](images/SpringSecurityInMemoryAdmin.png)
+- ##### Role Based Authorization
+    - Now I want to forbid access of admin enpoints to user and vice versa.
+    - In controller, on top of endpoint method, add **PreAuthorize("hasRole(<Role>)") like 
+        ```java
+        @RestController
+        public class UserController {
+
+            @GetMapping("/hello") // anyone can access.
+            public String hello() {
+                return "Hello World";
+            }
+
+            @PreAuthorize("hasRole('USER')") // User with role "USER" can access this
+            @GetMapping("/user")
+            public String userEndpoint() {
+                return "Hello User..!";
+            }
+
+            @PreAuthorize("hasRole('ADMIN')") // User with role "ADMIN" can access this
+            @GetMapping("/admin")
+            public String adminEndpoint() {
+                return "Hello Admin..!";
+            }
+        }
+        ```
+    - For this in SecurtityConfig, on top of the class, we have to add an annotation **@EnableMethodSecurity** and it becomes like:
+        ```java
+        @Configuration
+        @EnableWebSecurity
+        @EnableMethodSecurity
+        public class SecurityConfig {
+
+            @Bean
+            SecurityFilterChain defaultSecurityFilterChain(HttpSecurity http) throws Exception {
+                // <---------[Implementation]--------->
+            }
+
+            @Bean
+            public UserDetailsService userDetailsService(){
+                // <---------[Implementation]--------->
+            }
+        }
+        ```
+    - Now when [user:testing@123] access
+        - "/user" then response is "Hello User..!" || 200.
+        - "/admin", then response is "Forbidden" || 403.
+    - Now when [admin:testing#123] access
+        - "/admin", then response is "Hello Admin..!" || 200.
+        - "/user" then response is "Forbidden" || 403.
+
+
+- ##### Enabling H2 Database with Spring Security:
+    - By default H2 database comes with own login, so with our login details, it won't work.
+    - So we can bypass our login with adding following line in **SecurityFilterChain defaultSecurityFilterChain** in SecurityConfig:
+        ```java
+        http.authorizeHttpRequests((requests) ->
+                requests.requestMatchers("/h2-console/**").permitAll()
+                        .anyRequest().authenticated());
+        ```
+    - It mean to permit all the urls matching /h2-console/**.
+    - Even after adding this, still it won't work because we need to disable CSRF by
+        ```java
+        http.csrf(csrf -> csrf.disable());
+
+        // [Or with Lambda with method reference]
+        http.csrf(AbstractHttpConfigurer::disable);
+        ```
+    - After this, it won't ask for login, but h2-console will be like:
+        ![alt text](images/SpringSecurtiyH2ConsoleFrameError.png)
+    - This can be fixed by adding below line in **SecurityFilterChain defaultSecurityFilterChain**
+        ```java
+        http.headers(headers -> headers.frameOptions(frameOptions -> frameOptions.sameOrigin()));
+        [Or with Lambda with method reference]
+        http.headers(headers -> headers.frameOptions(HeadersConfigurer.FrameOptionsConfig::sameOrigin));
+        ```
+    - Now full method is like:
+        ```java
+        @Configuration
+        @EnableWebSecurity
+        @EnableMethodSecurity
+        public class SecurityConfig {
+
+            @Bean
+            SecurityFilterChain defaultSecurityFilterChain(HttpSecurity http) throws Exception {
+                http.authorizeHttpRequests((requests) ->
+                        requests.requestMatchers("/h2-console/**").permitAll() // to permin /h2-console/ without authentication
+                                .anyRequest().authenticated());
+                http.sessionManagement(session ->
+                        session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
+                http.httpBasic(Customizer.withDefaults());
+
+                // to enable the frames of h2-console
+                http.headers(headers -> headers.frameOptions(HeadersConfigurer.FrameOptionsConfig::sameOrigin));
+
+                // to disable CSRF
+                http.csrf(AbstractHttpConfigurer::disable);
+                return http.build();
+            }
+        }
+        ```
+    - After this we can access h2-console like before.
+
+- ##### User Details Management:
+    - Currently we are adding credentials in application.properties but we can have only 1 user. But we can add more user credentials using InMemoryUserDetailsManager, JdbcUserDetailsManager and so on.
+    - ###### InMemoryUserDetailsManager:
+        - Here users' credentials will be in-memory.
+            ```java
+            @Configuration
+            @EnableWebSecurity
+            @EnableMethodSecurity
+            public class SecurityConfig {
+                @Bean
+                public UserDetailsService userDetailsService(){
+                    UserDetails user = User.withUsername("user")
+                            .password("{noop}testing@123") // using {noop} means to tell spring to save password in plain text
+            //              .password("testing@123") // password will be stored in encoded format
+                            .roles("USER")
+                            .build();
+
+                    UserDetails admin = User.withUsername("admin")
+                            .password("{noop}testing#123")
+                            .roles("ADMIN")
+                            .build();
+
+                    return new InMemoryUserDetailsManager(user, admin);
+                }
+            }
+        - password("{noop}testing@123") 
+            - using {noop} means to tell spring to save password in plain text
+        - password("testing@123") 
+            - password will be stored in encoded format
+    - ###### JdbcUserDetailsManager:
+        - Here we will use databases and currently we are using **h2-console**.
+        - Using **JdbcUserDetailsManager** we can do and it need **DataSource** reference. On application start, here Springboot will give reference of h2-console.
+        - Before that we need to create Users schema, else server will get crashed. So for that, [Spring Security users.ddl](https://github.com/spring-projects/spring-security/blob/main/core/src/main/resources/org/springframework/security/core/userdetails/jdbc/users.ddl) get the below one
+        ```
+        create table users(username varchar_ignorecase(50) not null primary key,password varchar_ignorecase(500) not null,enabled boolean not null);
+
+        create table authorities (username varchar_ignorecase(50) not null,authority varchar_ignorecase(50) not null,constraint fk_authorities_users foreign key(username) references users(username));
+        create unique index ix_auth_username on authorities (username,authority);
+        ```
+        - Create **schema.sql** in resources folder and paste above one.
+        - On application start, it will get run automatically and create **USERS** table in h2 database. And it will add 2 users like given above.
+        ![alt text](images/SpringSecurityJdbcUserDetailsManager.png)
+- ##### Password Encryption
+    - In general, we strore passwords in database in encrypted formats instead of storing them as plain texts.
+    - Code changes are:
+        ```java
+        @Configuration
+        @EnableWebSecurity
+        @EnableMethodSecurity
+        public class SecurityConfig {
+
+            @Bean
+            public UserDetailsService userDetailsService(){
+                UserDetails user = User.withUsername("user")
+                        .password(passwordEncoder().encode("testing@123"))
+                        .roles("USER")
+                        .build();
+
+                UserDetails admin = User.withUsername("admin")
+                        .password(passwordEncoder().encode("testing#123"))
+                        .roles("ADMIN")
+                        .build();
+
+                JdbcUserDetailsManager jdbcUserDetailsManager = new JdbcUserDetailsManager(dataSource);
+                jdbcUserDetailsManager.createUser(user);
+                jdbcUserDetailsManager.createUser(admin);
+                return jdbcUserDetailsManager;
+            }
+
+            @Bean
+            PasswordEncoder passwordEncoder(){
+                return new BCryptPasswordEncoder();
+            }
+        }
+        ```
+    - Now in database, it will be stored in encoded format like:
+        ![alt text](images/SpringSecurityPasswordEncoding.png)
+
+- ##### JWT [Json Web Token] Implementation:
+    - Files we are goinf to need are:
+        - JwtUtils
+            - Contains utility methods for generating, parsing and validating JWTs like 
+                - generating a token from a username
+                - validating a JWT and 
+                - extracting the username from a token.
+        - AuthTokenFilter
+            - Filters incoming request to check for a valid JWT in the headers, setting the **authentication context** if the token is valid.
+            - Extracts JWT from request header, validates it, and configures the Spring **Security context** with user details if the token is valid.
+        - AuthEntryPointJwt
+            - Provides custom handling for unauthorized requests, typically when authentication is required but not supplied or valid.
+            - When an unauthorized request is detected, it logs the erro and returns a JSON response with an error message, status code, and the path attempted.
+        - SecurtiyConfig
+            - Configures Spring Security filters & rules for the application.
+            - Sets up the security filter chain, permitting or denying access based on paths and roles.
+            - It also configures session management to stateless, which is crucial for JWT usuage.
+        - Code Setup:
+            - From github, from **jjwt** repository, from [Dependencies Site](https://github.com/jwtk/jjwt#installation), get following code:
+                ```xml
+                <dependency>
+                    <groupId>io.jsonwebtoken</groupId>
+                    <artifactId>jjwt-api</artifactId>
+                    <version>0.13.0</version>
+                </dependency>
+                <dependency>
+                    <groupId>io.jsonwebtoken</groupId>
+                    <artifactId>jjwt-impl</artifactId>
+                    <version>0.13.0</version>
+                    <scope>runtime</scope>
+                </dependency>
+                <dependency>
+                    <groupId>io.jsonwebtoken</groupId>
+                    <artifactId>jjwt-jackson</artifactId> <!-- or jjwt-gson if Gson is preferred -->
+                    <version>0.13.0</version>
+                    <scope>runtime</scope>
+                </dependency>
+                ```
+    -   jwt/JwtUtils.java
+        ```java
+        public class JwtUtils {
+            private static final Logger logger = LoggerFactory.getLogger(JwtUtils.class);
+
+            @Value("${spring.app.jwtExpirationMs}") // to get value from application.properties
+            private int jwtExpirationMs;
+
+            @Value("${spring.app.jwtSecret}")
+            private String jwtSecret;
+
+            // Getting JWT From Headers
+            public String getJwtFromHeader(HttpServletRequest request) {
+                String bearerToken = request.getHeader("Authorization");
+                logger.debug("Bearer Token: {}", bearerToken);
+                if (bearerToken != null && bearerToken.startsWith("Bearer ")) {
+                    return bearerToken.substring(7); // Remove Bearer and return only token.
+                }
+                logger.debug("Bearer Token is empty");
+                return null;
+            }
+
+            // Generating Token from Username
+            public String generateTokenFromUsername(UserDetails userDetails) {
+                String username = userDetails.getUsername();
+                return Jwts.builder()
+                        .subject(username)
+                        .issuedAt(new Date())
+                        .expiration(new Date(System.currentTimeMillis() + jwtExpirationMs))
+                        .signWith(key()) // we are signing the token using a secret key. We need to sign the token with
+                                        // the secret key so that it is proved that token is legit and wasn't tampered
+                                        // with.
+                        .compact(); // which means it finishes the building and returns the token in a compact
+                                    // string format.
+            }
+
+            // Getting Username from JWT token
+            public String getUserNameFromJwtToken(String token) {
+                return Jwts.parser() // start to build the parser to read JWT
+                        .verifyWith(key())// then verify using the key
+                        .build()// to build the parser
+                        .parseSignedClaims(token)// parse the JWT and extract its claims. Claims means the data inside that we
+                                                // will add during token creation.
+                        .getPayload() // to get actual content or payload of the token
+                        .getSubject(); // to get the subject field from the payload.
+            }
+
+            // Generate Signing Key
+            /*
+            1. Keep return type as SecretKey instead of Key.
+            2. Also if secret is plain text like: ```spring.app.jwtSecret=qwetusagdhjdsjfu3y7ir68643ryrhegdsvwhfhi3reuhvehdsgfreud``` then, 
+                - Keys.hmacShaKeyFor(jwtSecret.getBytes());
+            3, If secret key is Base64 encoded like ```spring.app.jwtSecret=cXdldHVzYWdkaGpkc2pmdTN5N2lyNjg2NDNyeXJoZWdkc3Z3aGZoaTNyZXVodmVoZHNnZnJldWQ=``` then,
+                - Keys.hmacShaKeyFor(Decoders.BASE64.decode(jwtSecret));
+            */
+            public SecretKey key() {
+                return Keys.hmacShaKeyFor(Decoders.BASE64.decode(jwtSecret));
+            }
+
+            // Validate JWT Token
+            public boolean validateJwtToken(String token) {
+                try {
+                    logger.debug("Validating jwt token...");
+                    Jwts.parser()
+                            .verifyWith(key())
+                            .build()
+                            .parseSignedClaims(token);
+                    return true;
+                } catch (MalformedJwtException e) {
+                    logger.error("Invalid JWT token {}", e.getMessage());
+                } catch (ExpiredJwtException e) {
+                    logger.error("JWT is expired {}", e.getMessage());
+                } catch (UnsupportedJwtException e) {
+                    logger.error("JWT token is unsupported {}", e.getMessage());
+                } catch (IllegalArgumentException e) {
+                    logger.error("JWT claims string is empty {}", e.getMessage());
+                } catch (SignatureException e) {
+                    logger.error("Invalid JWT signature {}", e.getMessage());
+                } catch (JwtException e) {
+                    logger.error("JWT validation failed {}", e.getMessage());
+                }
+                return false;
+            }
+        }
+        ```
+
+    - jwt/AuthEntryPointJwt.java
+        ```java
+        package com.gomad.spring_security.jwt;
+
+        import jakarta.servlet.ServletException;
+        import jakarta.servlet.http.HttpServletRequest;
+        import jakarta.servlet.http.HttpServletResponse;
+        import org.springframework.http.MediaType;
+        import org.springframework.security.core.AuthenticationException;
+        import org.springframework.security.web.AuthenticationEntryPoint;
+        import org.springframework.stereotype.Component;
+
+        import java.io.IOException;
+        import java.util.HashMap;
+        import java.util.Map;
+
+        import org.slf4j.Logger;
+        import org.slf4j.LoggerFactory;
+        import tools.jackson.databind.ObjectMapper;
+
+        /*
+            AuthenticationEntryPoint: Used by ExceptionTranslationFilter to commence an authentication scheme.
+            AuthEntryPointJwt: to modify the response that user gets when his request is not authenticated.
+
+            So when someone tries to access a protected API without logging in, instead of showing a blank page or HTML error page,
+            which is not a user-friendly, this class is going to help us return a JSON based error response, which will have some details
+            about what error has happened.
+        */
+
+        @Component
+        public class AuthEntryPointJwt implements AuthenticationEntryPoint {
+
+            private static final Logger logger = LoggerFactory.getLogger(AuthEntryPointJwt.class);
+
+            @Override
+            public void commence(HttpServletRequest request,
+                                HttpServletResponse response,
+                                AuthenticationException authException) throws IOException, ServletException {
+                logger.error("Unauthorized error: {}", authException.getMessage());
+                response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                final Map<String, Object> body = new HashMap<>();
+                body.put("status", HttpServletResponse.SC_UNAUTHORIZED);
+                body.put("error", "Unauthorized");
+                body.put("message", authException.getMessage());
+                body.put("path", request.getServletPath());
+                final ObjectMapper mapper = new ObjectMapper();
+                mapper.writeValue(response.getOutputStream(), body);
+            }
+        }
+        ```
+    - Example response is 
+        ```json
+        {
+            "path": "/user",
+            "error": "Unauthorized",
+            "message": "Full authentication is required to access this resource",
+            "status": 401
+        }
+        ```
+    
+    - jwt/AuthTokenFilter.java
+        ```java
+        package com.gomad.spring_security.jwt;
+
+        import java.io.IOException;
+
+        import org.slf4j.Logger;
+        import org.slf4j.LoggerFactory;
+        import org.springframework.beans.factory.annotation.Autowired;
+        import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+        import org.springframework.security.core.context.SecurityContextHolder;
+        import org.springframework.security.core.userdetails.UserDetails;
+        import org.springframework.security.core.userdetails.UserDetailsService;
+        import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
+        import org.springframework.stereotype.Component;
+        import org.springframework.web.filter.OncePerRequestFilter;
+
+        import jakarta.servlet.FilterChain;
+        import jakarta.servlet.ServletException;
+        import jakarta.servlet.http.HttpServletRequest;
+        import jakarta.servlet.http.HttpServletResponse;
+
+        @Component
+        public class AuthTokenFilter extends OncePerRequestFilter { // executes only once for request
+
+            @Autowired // to access our JWTUtils for utility methods 
+            private JwtUtils jwtUtils;
+
+            @Autowired // Core interface which loads user-specific data.
+            private UserDetailsService userDetailsService;
+
+            private static final Logger logger = LoggerFactory.getLogger(AuthTokenFilter.class);
+
+            @Override
+            protected void doFilterInternal(HttpServletRequest request,
+                    HttpServletResponse response,
+                    FilterChain filterChain) throws ServletException, IOException {
+                logger.debug("AuthTokenFilter called for url {}", request.getRequestURI());
+                try {
+                    String jwt = parseJwt(request); // to get JWT from request header.
+                    if (jwt != null && jwtUtils.validateJwtToken(jwt)) {
+                        String username = jwtUtils.getUserNameFromJwtToken(jwt);
+                        UserDetails userDetails = userDetailsService.loadUserByUsername(username);
+                        UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
+                                userDetails, null, userDetails.getAuthorities());
+                        // UsernamePasswordAuthenticationToken designed for simple presentation of a
+                        // username and password.
+                        // This helps us set the rules and permissions for this particular user.
+                        // getAuthorities object is controlling what all rules this user has.
+                        authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request)); // attaching all
+                                                                                                            // the request
+                                                                                                            // details to
+                                                                                                            // authentication
+                                                                                                            // object.
+
+                        // Now we have to say this request is authenticated.
+                        SecurityContextHolder.getContext().setAuthentication(authentication);
+                        // SecurityContext: Interface defining the minimum security information
+                        // associated with the current thread
+                        // setAuthentication: Changes the currently authenticated principal, or removes
+                        // the authentication
+                        logger.debug("Roles from JWT: {}", userDetails.getAuthorities());
+                    }
+                } catch (Exception e) {
+                    logger.error("Can't set user authentication: {} and error trace is {}", e.getMessage(), e.getStackTrace());
+                }
+
+                // now we have to tell Spring Security that we have done with our custom filter
+                // and now you can continue with your filter chain
+                filterChain.doFilter(request, response);
+            }
+
+            private String parseJwt(HttpServletRequest request) {
+                String jwt = jwtUtils.getJwtFromHeader(request);
+                logger.debug("AuthTokenFilter jwt: {}", jwt);
+                return jwt;
+            }
+        }
+
+        ```
+    
+    - SecurityConfig.java
+        ```java
+        public class SecurityConfig {
+
+            @Autowired 
+            DataSource dataSource;
+
+            /*
+            1. It is the class which we have created to intercept requests once.
+            2. Here we are registering a custom JWT authentication filter as a string bean.
+            3. So this AuthTokenFilter filter will
+                - intercept the request
+                - look for authentication header
+                - authenticate the request
+            */
+            @Bean
+            public AuthTokenFilter authenticationJwtTokenFilter() {
+                return new AuthTokenFilter();
+            }
+
+            /*
+            1. It is the class which we have created to customize the response on authentication failure.
+            
+            */
+            @Autowired
+            private AuthEntryPointJwt unauthorizedHandler;
+
+            @Bean
+            SecurityFilterChain defaultSecurityFilterChain(HttpSecurity http) throws Exception {
+                http.authorizeHttpRequests((requests) ->
+                        requests
+                                .requestMatchers("/h2-console/**").permitAll()
+                                .requestMatchers("/signin").permitAll()   // to permit /signin endpoint
+                                .anyRequest().authenticated());
+                http.sessionManagement(session ->
+                        session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)); // to remove custom JWT sessionId 
+
+                http.exceptionHandling((exception) ->
+                        exception.authenticationEntryPoint(unauthorizedHandler); // pass our AuthEntryPointJwt reference
+                );
+
+                http.headers(headers -> headers.frameOptions(HeadersConfigurer.FrameOptionsConfig::sameOrigin));
+                http.csrf(AbstractHttpConfigurer::disable);
+                // Before calling UsernamePasswordAuthenticationFilter, call authenticationJwtTokenFilter.
+                http.addFilterBefore(authenticationJwtTokenFilter(), UsernamePasswordAuthenticationFilter.class);
+                return http.build();
+            }
+
+            @Bean
+            public UserDetailsService userDetailsService(DataSource dataSource) {
+                return new JdbcUserDetailsManager(dataSource);
+            }
+
+            /*
+            <===== [Using CommandLineRunner, we are creating users else following error will come.] =====> 
+            1. Error creating bean with name 'authTokenFilter': Unsatisfied dependency expressed through field 'userDetailsService': Error creating bean with name 'userDetailsService' defined in class path resource.
+            2.  Factory method 'userDetailsService' threw exception with message: PreparedStatementCallback; bad SQL grammar [insert into users (username, password, enabled) values (?,?,?)]
+            */
+            @Bean
+            public CommandLineRunner initData(UserDetailsService userDetailsService){
+                return args -> {
+                    JdbcUserDetailsManager manager = (JdbcUserDetailsManager) userDetailsService;
+                    UserDetails user = User.withUsername("user")
+                            .password(passwordEncoder().encode("testing@123"))
+                            .roles("USER")
+                            .build();
+
+                    UserDetails admin = User.withUsername("admin")
+                            .password(passwordEncoder().encode("testing#123"))
+                            .roles("ADMIN")
+                            .build();
+                    JdbcUserDetailsManager jdbcUserDetailsManager = new JdbcUserDetailsManager(dataSource);
+                    jdbcUserDetailsManager.createUser(user);
+                    jdbcUserDetailsManager.createUser(admin);
+                };
+            }
+
+            @Bean
+            PasswordEncoder passwordEncoder(){
+                return new BCryptPasswordEncoder();
+            }
+
+            @Bean
+            public AuthenticationManager authenticationManager(AuthenticationConfiguration builder) throws Exception {
+                return builder.getAuthenticationManager();
+            }
+        }
+        ```
+    - Now for **/signin**
+        - requestBody:
+            ```json
+            {
+                "username": "admin",
+                "password": "testing#123"
+            }
+            ```
+        - responseBody:
+            ```json
+            {
+                "token": "eyJhbGciOiJIUzM4NCJ9.eyJzdWIiOiJhZG1pbiIsImlhdCI6MTc5MDc4MDE1MSwiZXhwIjoxNzkwODY2NTUxfQ.uClazLJfA3SMd9vOURO-qVZgXtf4GGO2JaBn3tqbxcZUPPJXaVscBZA04GkkXZ8H",
+                "username": "admin",
+                "roles": [
+                    "ROLE_ADMIN"
+                ]
+            }
+            ```
+    - Now for **/admin**
+        - When proper bearer token is not passed, then we will get response like:
+            ```json
+            {
+                "path": "/admin",
+                "error": "Unauthorized",
+                "message": "Full authentication is required to access this resource",
+                "status": 401
+            }
+            ```
+        - On passing proper token, then we will get proper response.
+
+### Postgres Setup:
+- Dependency needed: postgresql & JPA
+    ```xml
+    <dependency>
+        <groupId>org.postgresql</groupId>
+        <artifactId>postgresql</artifactId>
+        <scope>runtime</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-data-jpa</artifactId>
+    </dependency>
+    ```
+- In application.properties:
+    ```
+    # Database URL
+    spring.datasource.url=jdbc:postgresql://localhost:5432/employees
+
+    # Postgresql Credentials
+    spring.datasource.username=postgres
+    spring.datasource.password=postgres
+
+    # Hibernate setup
+    spring.jpa.hibernate.ddl-auto=update
+    spring.jpa.database-platform=org.hibernate.dialect.PostgreSQLDialect
+    ```
+
+![alt text](images/ManagingUserProfiles.png)
+
+### Cookies:
+- Bearer tokens need to be added to the HTTP requests explicitly.
+    - Format is **Authorization: Bearer <Token>
+    ![alt text](images/CookiesBearerTokenFlow.png)
+- Browsers will automatically send the cookies.
+    ![alt text](images/CookiesCookiesFlow.png)
+- Code changes: Refer spring_security repo and mostly code is as same as JWT code, only changes are to set and get token from cookies instead of headers. Refer JWT section code and below only changes are kept.
+    ```java
+    // In JwtUtils.java
+    package com.gomad.spring_security.jwt;
+
+    @Component
+    public class JwtUtils {
+        private static final Logger logger = LoggerFactory.getLogger(JwtUtils.class);
+
+        @Value("${spring.springSecurity.app.jwtCookie}")
+        private String jwtCookie;
+
+        // get cookie from cookies: Before this getJwtFromHeader was there and this change needs to be done in AuthTokenFilter.java
+        public String getJwtFromCookies(HttpServletRequest request) {
+            Cookie cookie = WebUtils.getCookie(request, jwtCookie);
+            assert cookie != null;
+            return cookie.getValue() != null ? cookie.getValue() : null;
+        }
+
+        // generate cookie and send as response and is needed to be updated in Controller.
+        public ResponseCookie generateJwtCookie(UserDetails userDetails){
+            String jwt = generateTokenFromUsername(userDetails);
+            return ResponseCookie.from(jwtCookie, jwt)
+                    .path("/") // this is very much important.
+                    .maxAge(jwtExpirationMs / 1000)
+                    .httpOnly(false)
+                    .build();
+        }
+    }
+
+    // In AuthTokenFilter.java
+
+    @Component
+    public class AuthTokenFilter extends OncePerRequestFilter {
+        private String parseJwt(HttpServletRequest request) {
+        //  String jwt = jwtUtils.getJwtFromHeader(request); // this is for Header token wise
+            String jwt = jwtUtils.getJwtFromCookies(request); // cookie based
+            logger.debug("AuthTokenFilter jwt: {}", jwt);
+            return jwt;
+        }
+    }
+
+
+    // In UserController.java
+    @RestController
+    public class UserController {
+        @PostMapping("/signin")
+        public ResponseEntity<?> authenticateUser(@RequestBody LoginRequest loginRequest) {
+            // <==================[SAME LOGIC]==================>
+            // String token = jwtUtils.generateTokenFromUsername(userDetails); // 
+            ResponseCookie jwtCookie = jwtUtils.generateJwtCookie(userDetails); // cookie is created using userdetails. 
+            List<String> roles = userDetails.getAuthorities().stream()
+                    .map(GrantedAuthority::getAuthority)
+                    .map(item -> item.getAuthority())
+                    .toList();
+            LoginResponse loginResponse = new LoginResponse(jwtCookie.toString(), userDetails.getUsername(), roles);
+            // return ResponseEntity.ok(loginResponse);
+
+            // Coding to send cookie in reponse
+            return ResponseEntity.ok()
+                    .header(HttpHeaders.SET_COOKIE,jwtCookie.toString())
+                    .body(loginResponse);
+        }
+    }
+
+    // In application.properties:
+    spring.app.jwtSecret=cXdldHVzYWdkaGpkc2pmdTN5N2lyNjg2NDNyeXJoZWdkc3Z3aGZoaTNyZXVodmVoZHNnZnJldWQ=
+    spring.app.jwtExpirationMs=86400000
+    spring.springSecurity.app.jwtCookie=springSecurity
+    ```
+-   Now in response, in cookies tab, we will get cookie with name **jwtCookie** as set in application.properties.
+    ![alt text](images/CookieSignin.png)
+- Now cookie will be set automatically by browser, insomnia and other postman tools, like in request headers, bearer token part is empty.
+    ![alt text](images/CookieSigninResponse.png)
+
+- ### Proper Setup:
+
+- Our Auth flow
+    ```
+    Login Request
+            |
+            v
+    AuthenticationManager
+            |
+            v
+    DaoAuthenticationProvider
+            |
+            v
+    UserDetailsServiceImpl
+            |
+            v
+    UserRepository
+            |
+            v
+    PostgreSQL users table
+    ```
+- /signin flow
+    ```
+    Login Request
+        ↓
+    AuthenticationManager
+        ↓
+    DaoAuthenticationProvider
+        ↓
+    UserDetailsServiceImpl
+        ↓
+    loads UserDetailsImpl
+        ↓
+    DaoAuthenticationProvider compares passwords
+        ↓
+    Authentication success
+        ↓
+    UserDetailsImpl stored as principal
+        ↓
+    SecurityContextHolder
+    ```
+
+### Spring Security JWT Authentication Flow & Complete Signin flow:
+
+- #### Overview
+    This application uses:
+    - Spring Security
+    - JWT Authentication
+    - `AuthenticationManager`
+    - `DaoAuthenticationProvider`
+    - `UserDetailsService`
+    - PostgreSQL Database
+
+- Unlike Spring's default `/login` endpoint, authentication is performed through a custom REST endpoint:
+    ```http
+    POST /api/auth/signin
+    ```
+---
+
+- #### End-to-End Authentication Flow
+
+    - ##### Step 1: User calls Sign In API
+        ```http
+        POST /api/auth/signin
+        ```
+
+        Request:
+
+        ```json
+        {
+        "userName": "rama1234",
+        "password": "password123"
+        }
+        ```
+
+        Controller:
+
+        ```java
+        @PostMapping("/signin")
+        public ResponseEntity<?> authenticateUser(
+                @Valid @RequestBody LoginRequest loginRequest) {
+
+            Authentication authentication =
+                    authenticationManager.authenticate(
+                            new UsernamePasswordAuthenticationToken(
+                                    loginRequest.getUserName(),
+                                    loginRequest.getPassword()
+                            )
+                    );
+
+            ...
+        }
+        ```
+        - At this point Spring Security starts the authentication process.
+        ---
+
+    - ##### Step 2: AuthenticationManager Receives Authentication Request
+        Code:
+        ```java
+        authenticationManager.authenticate(
+                new UsernamePasswordAuthenticationToken(
+                        loginRequest.getUserName(),
+                        loginRequest.getPassword()
+                )
+        );
+        ```
+        The `UsernamePasswordAuthenticationToken` initially contains:
+
+        ```text
+        principal   = username
+        credentials = password
+        authenticated = false
+        ```
+
+        Example:
+
+        ```text
+        principal = rama1234
+        credentials = password123
+        authenticated = false
+        ```
+
+        ---
+
+    - ##### Step 3: AuthenticationManager Delegates to DaoAuthenticationProvider
+
+        Configuration:
+
+        ```java
+        @Bean
+        public DaoAuthenticationProvider authenticationProvider() {
+
+            DaoAuthenticationProvider authProvider =
+                    new DaoAuthenticationProvider();
+
+            authProvider.setUserDetailsService(userDetailsService);
+
+            authProvider.setPasswordEncoder(passwordEncoder());
+
+            return authProvider;
+        }
+        ```
+
+        Responsibilities of `DaoAuthenticationProvider`:
+
+        - Load user details
+        - Verify password
+        - Create authenticated Authentication object
+        - Throw exception if credentials are invalid
+
+        ---
+
+    - ##### Step 4: DaoAuthenticationProvider Calls UserDetailsServiceImpl
+
+        Spring invokes:
+
+        ```java
+        userDetailsService.loadUserByUsername(username);
+        ```
+
+        Implementation:
+
+        ```java
+        @Service
+        public class UserDetailsServiceImpl implements UserDetailsService {
+
+            @Autowired
+            private UserRepository userRepository;
+
+            @Override
+            public UserDetails loadUserByUsername(String username)
+                    throws UsernameNotFoundException {
+
+                User user = userRepository.findByUserName(username)
+                        .orElseThrow(() ->
+                                new UsernameNotFoundException("User Not Found"));
+
+                return UserDetailsImpl.build(user);
+            }
+        }
+        ```
+
+        Responsibility of `UserDetailsServiceImpl`:
+
+        ✅ Fetch user from database
+
+        ✅ Convert User entity into UserDetails
+
+        ❌ Does NOT authenticate user
+
+        ❌ Does NOT compare passwords
+
+        ❌ Does NOT generate JWT
+
+        ---
+
+    - ##### Step 5: User is Loaded from Database
+
+        Repository Call:
+
+        ```java
+        userRepository.findByUserName(username)
+        ```
+
+        SQL Equivalent:
+
+        ```sql
+        SELECT *
+        FROM users
+        WHERE username = 'rama1234';
+        ```
+
+        Example User Entity:
+
+        ```java
+        User {
+            id=101,
+            username="rama1234",
+            email="rama1234@gmail.com",
+            password="$2a$10$..."
+        }
+        ```
+
+        ---
+
+    - ##### Step 6: UserDetailsImpl is Created
+
+        Code:
+
+        ```java
+        return UserDetailsImpl.build(user);
+        ```
+
+        Example:
+
+        ```java
+        public class UserDetailsImpl implements UserDetails {
+
+            private Long id;
+
+            private String username;
+
+            private String email;
+
+            @JsonIgnore
+            private String password;
+
+            private Collection<? extends GrantedAuthority> authorities;
+        }
+        ```
+
+        Purpose:
+
+        `UserDetailsImpl` is Spring Security's representation of the authenticated user.
+
+        It contains:
+
+        - User ID
+        - Username
+        - Email
+        - Encoded Password
+        - Roles / Authorities
+
+        ---
+
+    - ##### Step 7: Password Validation
+
+        After receiving the `UserDetailsImpl`, Spring Security validates the password.
+
+        Performed internally by:
+
+        ```java
+        DaoAuthenticationProvider
+        ```
+
+        Conceptually:
+
+        ```java
+        passwordEncoder.matches(
+                enteredPassword,
+                userDetails.getPassword()
+        );
+        ```
+
+        Example:
+
+        ```java
+        passwordEncoder.matches(
+                "password123",
+                "$2a$10$abcdef..."
+        );
+        ```
+
+        - ###### If Password Matches
+
+            - Authentication succeeds.
+
+        - ###### If Password Does Not Match
+
+        Spring throws:
+
+        ```java
+        BadCredentialsException
+        ```
+
+        which is caught here:
+
+        ```java
+        catch(AuthenticationException ex) {
+
+            Map<String, Object> map = new HashMap<>();
+
+            map.put("message", "Bad credentials");
+
+            map.put("status", false);
+
+            return new ResponseEntity<>(
+                    map,
+                    HttpStatus.UNAUTHORIZED
+            );
+        }
+        ```
+
+        ---
+
+    - ##### Step 8: Authenticated Authentication Object Is Created
+
+        After successful authentication, Spring creates a new Authentication object.
+
+        Conceptually:
+
+        ```java
+        Authentication {
+            principal = UserDetailsImpl
+            authorities = [ROLE_USER]
+            authenticated = true
+        }
+        ```
+
+        Before Authentication:
+
+        ```text
+        principal = username string
+        authenticated = false
+        ```
+
+        After Authentication:
+
+        ```text
+        principal = UserDetailsImpl
+        authenticated = true
+        ```
+
+        ---
+
+    - ##### Step 9: Store Authentication in SecurityContext
+
+        Code:
+
+        ```java
+        SecurityContextHolder
+                .getContext()
+                .setAuthentication(authentication);
+        ```
+
+        Purpose:
+
+        Store the authenticated user in Spring Security Context for the current request.
+
+        Flow:
+
+        ```text
+        Authentication
+            ↓
+        SecurityContextHolder
+            ↓
+        Available throughout request lifecycle
+        ```
+
+        ---
+
+    - ##### Step 10: Retrieve Authenticated User
+
+        Code:
+
+        ```java
+        UserDetailsImpl userDetails =
+                (UserDetailsImpl) authentication.getPrincipal();
+        ```
+
+        Here:
+
+        ```java
+        authentication.getPrincipal()
+        ```
+
+        returns the authenticated user.
+
+        Example:
+
+        ```java
+        UserDetailsImpl {
+            id = 101,
+            username = "rama1234",
+            authorities = [ROLE_USER]
+        }
+        ```
+
+        ---
+
+        ## About This Null Check
+
+        Current Code:
+
+        ```java
+        if (userDetails == null) {
+
+            Map<String, Object> map = new HashMap<>();
+
+            map.put("message", "Bad credentials");
+
+            map.put("status", false);
+
+            return new ResponseEntity<>(
+                    map,
+                    HttpStatus.UNAUTHORIZED
+            );
+        }
+        ```
+
+        In most cases, this check is unnecessary.
+
+        Reason:
+
+        If authentication fails:
+
+        ```java
+        authenticationManager.authenticate(...)
+        ```
+
+        throws:
+
+        ```java
+        AuthenticationException
+        ```
+
+        and execution goes to the catch block.
+
+        If authentication succeeds:
+
+        ```java
+        authentication.getPrincipal()
+        ```
+
+        will contain a valid `UserDetailsImpl`.
+
+        So `userDetails` should never be null after successful authentication.
+
+        ---
+
+    - ##### Step 11: Generate JWT Cookie
+
+        Code:
+
+        ```java
+        ResponseCookie jwtCookie =
+                jwtUtils.generateJwtCookie(userDetails);
+        ```
+
+        Purpose:
+
+        Generate JWT token containing authenticated user information.
+
+        Example:
+
+        ```text
+        eyJhbGciOiJIUzI1NiJ9...
+        ```
+
+        JWT is stored inside a cookie and sent to the client.
+
+        ---
+
+    - ##### Step 12: Extract User Roles
+
+        Code:
+
+        ```java
+        List<String> roles =
+                userDetails.getAuthorities()
+                        .stream()
+                        .map(GrantedAuthority::getAuthority)
+                        .toList();
+        ```
+
+        Example:
+
+        ```java
+        [
+            "ROLE_USER"
+        ]
+        ```
+
+        or
+
+        ```java
+        [
+            "ROLE_ADMIN",
+            "ROLE_USER"
+        ]
+        ```
+
+        ---
+
+    - ##### Step 13: Build Response
+
+        Code:
+
+        ```java
+        UserInfoResponse loginResponse =
+                new UserInfoResponse(
+                        userDetails.getId(),
+                        jwtCookie.toString(),
+                        userDetails.getUsername(),
+                        roles
+                );
+        ```
+
+        ---
+
+    - ##### Step 14: Return Response to Client
+
+        Code:
+
+        ```java
+        return ResponseEntity.ok()
+                .header(
+                        HttpHeaders.SET_COOKIE,
+                        jwtCookie.toString()
+                )
+                .body(loginResponse);
+        ```
+
+        Response:
+
+        ```json
+        {
+            "id": 101,
+            "username": "rama1234",
+            "roles": [
+                "ROLE_USER"
+            ]
+        }
+        ```
+
+        ---
+
+        ###### Responsibilities of Major Components
+
+        ###### UserDetailsServiceImpl
+
+        Responsibilities:
+
+        ✅ Load user from database
+
+        ✅ Convert User entity into UserDetails
+
+        ❌ Does not authenticate
+
+        ❌ Does not compare passwords
+
+        ❌ Does not generate JWT
+
+        Example:
+
+        ```java
+        UserDetails loadUserByUsername(String username)
+        ```
+
+        ---
+
+        ###### UserDetailsImpl
+
+        Responsibilities:
+
+        ✅ Represents authenticated user
+
+        ✅ Stores username
+
+        ✅ Stores roles
+
+        ✅ Stores encoded password
+
+        ✅ Becomes Authentication Principal
+
+        Example:
+
+        ```java
+        UserDetailsImpl implements UserDetails
+        ```
+
+        ---
+
+        ###### DaoAuthenticationProvider
+
+        Responsibilities:
+
+        ✅ Call UserDetailsService
+
+        ✅ Load UserDetails
+
+        ✅ Verify password
+
+        ✅ Create authenticated Authentication object
+
+        ✅ Throw exception for invalid credentials
+
+        Example:
+
+        ```java
+        authProvider.setUserDetailsService(userDetailsService);
+
+        authProvider.setPasswordEncoder(passwordEncoder());
+        ```
+
+        ---
+
+        ###### AuthenticationManager
+
+        Responsibilities:
+
+        ✅ Receive authentication request
+
+        ✅ Delegate authentication to provider
+
+        ✅ Return authenticated Authentication object
+
+        Example:
+
+        ```java
+        authenticationManager.authenticate(...)
+        ```
+
+        ---
+
+        ###### SecurityContextHolder
+
+        Responsibilities:
+
+        ✅ Store authenticated user
+
+        ✅ Make Authentication available throughout request
+
+        Example:
+
+        ```java
+        SecurityContextHolder.getContext()
+                            .setAuthentication(authentication);
+        ```
+
+        ---
+
+        ###### Complete Flow Diagram
+
+        ```text
+        POST /api/auth/signin
+                    |
+                    v
+        AuthController
+                    |
+                    v
+        AuthenticationManager.authenticate()
+                    |
+                    v
+        DaoAuthenticationProvider
+                    |
+                    v
+        UserDetailsServiceImpl
+                    |
+                    v
+        UserRepository
+                    |
+                    v
+        PostgreSQL Database
+                    |
+                    v
+        UserDetailsImpl.build(user)
+                    |
+                    v
+        DaoAuthenticationProvider
+        (password verification)
+                    |
+                    v
+        Authenticated Authentication Object
+                    |
+                    v
+        SecurityContextHolder
+                    |
+                    v
+        authentication.getPrincipal()
+                    |
+                    v
+        UserDetailsImpl
+                    |
+                    v
+        Generate JWT Cookie
+                    |
+                    v
+        Return Response
+        ```
+
+        ###### Key Takeaway
+
+            - **UserDetailsServiceImpl** → Loads user from database.
+            - **UserDetailsImpl** → Represents the authenticated user.
+            - **DaoAuthenticationProvider** → Validates password and authenticates user.
+            - **AuthenticationManager** → Delegates authentication process.
+            - **SecurityContextHolder** → Stores authenticated user for the request.
+            - **JWT** → Generated only after successful authentication and returned to the client.
+
+- ### Swagger Setup:
+    - dependency needed is **springdoc** and check for feasible version based on springboot version.
+    - In WebSecurityConfig, add 
+        ```java
+        .requestMatchers(
+                "/swagger-ui.html",
+                "/swagger-ui/**",
+                "/v3/api-docs/**",
+                "/swagger-resources/**",
+                "/webjars/**",
+                "/api/swagger-ui.html",
+                "/api/swagger-ui/**",
+                "/api/v3/api-docs/**",
+                "/api/swagger-resources/**",
+                "/api/webjars/**")
+        .permitAll()
+        ```
+    - Now access swagger on **http://localhost:8080/api/swagger-ui/index.html**
+        ![alt text](images/SwaggerBasic.png)
+    - ### Configuring settings:
+        - In Swagger, we can't use cookies, so for that we will accept jwt from header.
+        - Code changes are:
+            ```java
+            // JwtUtils.java
+            public class JwtUtils{
+                public String getJwtFromHeader(HttpServletRequest request) {
+                    String bearerToken = request.getHeader("Authorization");
+                    logger.debug("Bearer Token: {}", bearerToken);
+                    if (bearerToken != null && bearerToken.startsWith("Bearer ")) {
+                        return bearerToken.substring(7); // Remove Bearer and return only token.
+                    }
+                    logger.debug("Bearer Token is empty");
+                    return null;
+                }
+
+                // get cookie from cookies
+                public String getJwtFromCookies(HttpServletRequest request) {
+                    Cookie cookie = WebUtils.getCookie(request, jwtCookie);
+                    if (cookie != null) {
+                        return cookie.getValue();
+                    }
+
+                    return null;
+                }
+            }
+
+            // In AuthTokenFilter.java
+            public class AuthTokenFilter extends OncePerRequestFilter {
+
+                private String parseJwt(HttpServletRequest request) {
+                    String jwtFromCookie = jwtUtils.getJwtFromCookies(request);
+                    logger.debug("AuthTokenFilter jwtCookie: {}", jwtFromCookie);
+                    if (jwtFromCookie != null) {
+                        return jwtFromCookie;
+                    }
+
+                    String jwtFromHeader = jwtUtils.getJwtFromHeader(request);
+                    logger.debug("AuthTokenFilter jwtFromHeader: {}", jwtFromHeader);
+                    return jwtFromHeader;
+                }
+            }
+            ```
+        - Now we will make swagger settings to send token in Bearer token:
+            ```java
+            package com.gomad.complete_tutorial.config;
+
+            import io.swagger.v3.oas.models.Components;
+            import io.swagger.v3.oas.models.OpenAPI;
+            import io.swagger.v3.oas.models.security.SecurityRequirement;
+            import io.swagger.v3.oas.models.security.SecurityScheme;
+            import org.springframework.context.annotation.Bean;
+            import org.springframework.context.annotation.Configuration;
+
+            @Configuration
+            public class SwaggerConfig {
+
+                @Bean
+                public OpenAPI customOpenAPI() {
+                    // this tells Swagger UI that we want to make use of JWT tokens which will be passed in HTTP authorization header.
+                    SecurityScheme bearerScheme = new SecurityScheme()
+                            .type(SecurityScheme.Type.HTTP)
+                            .scheme("bearer")
+                            .bearerFormat("JWT")
+                            .description("JWT Bearer Token");
+                    String tokenList = "Bearer Authentication";
+                    SecurityRequirement bearerRequirement = new SecurityRequirement()
+                            .addList(tokenList);
+
+                    return new OpenAPI()
+                            .components(new Components()
+                                    .addSecuritySchemes(tokenList, bearerScheme))
+                            .addSecurityItem(bearerRequirement);
+                }
+            }
+            ```
+            ![alt text](images/SwaggerWithAuth.png)
+        - Now get token from insomnia:
+            ![alt text](images/SwaggerTokenFetching.png)
+        - Click **Authorize** and add token:
+            ![alt text](images/SwaggerTokenAuthorize.png)
+        - Execute any url:
+            ![alt text](images/SwaggerWithAuthHello.png)
+
+    - Swagger Annotations:
+        - Before Tags:
+            ![alt text](images/SwaggerBeforeTags.png)
+        - After Tag()
+            - Adding below ones on top of any controller, it will group controller into group.
+            ```java
+            @Tag(name = "User utils", description = "Helps in getting all details of User")
+            ```
+            ![alt text](images/SwaggerAfterTags.png)
+        
+### CORS:
+- Code is:
+    ```java
+    package com.gomad.complete_tutorial.config;
+
+    import org.springframework.context.annotation.Bean;
+    import org.springframework.web.servlet.config.annotation.CorsRegistry;
+    import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
+
+    public class WebConfig implements WebMvcConfigurer {
+
+        @Bean
+        public WebMvcConfigurer corsConfigure(){
+            return new WebMvcConfigurer() {
+                @Override
+                public void addCorsMappings(CorsRegistry registry) {
+    //                WebMvcConfigurer.super.addCorsMappings(registry);
+                    registry.addMapping("/**")
+                            .allowedOrigins("http://localhost:3000/")
+                            .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
+                            .allowedHeaders("*")
+                            .allowCredentials(true);
+                }
+            };
+        }
+    }
+    ```
+
+
 
