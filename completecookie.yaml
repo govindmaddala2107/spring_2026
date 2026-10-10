@@ -135,11 +135,11 @@ cookieJar:
   meta:
     id: jar_e04cf2d7f718f146084bfaff79b899f6a699223c
     created: 1791375854137
-    modified: 1791378621793
+    modified: 1791466777254
   cookies:
     - id: d549e716-feac-4176-9cd6-39595585e45e
       key: springSecurity
-      value: eyJhbGciOiJIUzM4NCJ9.eyJzdWIiOiJnb3Jvc2gxNDMiLCJpYXQiOjE3OTEzNzg2MjEsImV4cCI6MTc5MTQ2NTAyMX0.UTIg3VzCOes97uG60iRlhtbPUCxmtaFWrJ9puBFnkyGynhmx3YhiKEAiyDJxYRnA
+      value: eyJhbGciOiJIUzM4NCJ9.eyJzdWIiOiJnb3Jvc2gxNDMiLCJpYXQiOjE3OTE0NjY3NzcsImV4cCI6MTc5MTU1MzE3N30.SUL8e259Vc1noSwt7SaYtjQTx33wQFeJ4Q73qj8WHkL9F7GOu0Oy2LNRib_6S8h9
       domain: localhost
       path: /
       secure: false
