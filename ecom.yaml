@@ -1,0 +1,109 @@
+type: collection.insomnia.rest/5.0
+schema_version: "5.1"
+name: eCom
+meta:
+  id: wrk_c6448752e70349ef83647f9e26f8a0de
+  created: 1791649716438
+  modified: 1791649716438
+  description: ""
+collection:
+  - url: "{{base}}/auth/sign-up"
+    name: ADMIN_SIGNUP
+    meta:
+      id: req_cad0de3adae34c1e8b2131d8a78c4caa
+      created: 1791649770449
+      modified: 1791654733089
+      isPrivate: false
+      description: ""
+      sortKey: -1791649770449
+    method: POST
+    body:
+      mimeType: application/json
+      text: |-
+        {
+        	"username": "gomad",
+        	"email": "govindmvn@gmail.com",
+        	"password": "Ro$hiniGovind",
+        	"roles": "USER,ADMIN"
+        }   
+    headers:
+      - name: Content-Type
+        value: application/json
+    settings:
+      renderRequestBody: true
+      encodeUrl: true
+      followRedirects: global
+      cookies:
+        send: true
+        store: true
+      rebuildPath: true
+  - url: "{{base}}/auth/sign-in"
+    name: signin
+    meta:
+      id: req_5102312becf543d1871163330f39f753
+      created: 1791654726537
+      modified: 1791655134398
+      isPrivate: false
+      description: ""
+      sortKey: -1791654726537
+    method: POST
+    body:
+      mimeType: application/json
+      text: |-
+        {
+        	"username": "gomad",
+        	"password": "Ro$hiniGovind"
+        }
+    headers:
+      - name: Content-Type
+        value: application/json
+    settings:
+      renderRequestBody: true
+      encodeUrl: true
+      followRedirects: global
+      cookies:
+        send: true
+        store: true
+      rebuildPath: true
+  - url: "{{base}}/auth/userdetails"
+    name: userdetails
+    meta:
+      id: req_86b048d836694ded8bd23950cc936b7c
+      created: 1791655137616
+      modified: 1791655336837
+      isPrivate: false
+      description: ""
+      sortKey: -1791655137616
+    method: GET
+    settings:
+      renderRequestBody: true
+      encodeUrl: true
+      followRedirects: global
+      cookies:
+        send: true
+        store: true
+      rebuildPath: true
+cookieJar:
+  name: Default Jar
+  meta:
+    id: jar_2ecc88a6f5f3531d89112cfadbb16adf0405ddff
+    created: 1791649716493
+    modified: 1791655259940
+  cookies:
+    - id: 9d723c88-8260-4c3a-b33f-52f205b8be2e
+      key: springSecurity
+      value: eyJhbGciOiJIUzM4NCJ9.eyJzdWIiOiJnb21hZCIsImlhdCI6MTc5MTY1NTI1OSwiZXhwIjoxNzkxNzQxNjU5fQ.GSN1F49xzXOQzfI7EO00drE-chxhuSvpp0_Sot8vEJRSQhe9A3Y-jqdwiewHEN5x
+      domain: localhost
+      path: /api/v1
+      secure: false
+      httpOnly: true
+      hostOnly: true
+environments:
+  name: Base Environment
+  meta:
+    id: env_2ecc88a6f5f3531d89112cfadbb16adf0405ddff
+    created: 1791649716489
+    modified: 1791649754416
+    isPrivate: false
+  data:
+    base: http://localhost:8080/api/v1

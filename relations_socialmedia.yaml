@@ -1,0 +1,139 @@
+type: collection.insomnia.rest/5.0
+schema_version: "5.1"
+name: Relations_SocialMedia
+meta:
+  id: wrk_9e6428f9a19b46718d753a6f6ae32ad6
+  created: 1789886392848
+  modified: 1789886392848
+  description: ""
+collection:
+  - url: "{{baseurl}}/h2-console"
+    name: h2-Console
+    meta:
+      id: req_564d1e56660644cab23f9a6691be4bbd
+      created: 1789886439593
+      modified: 1790085504634
+      isPrivate: false
+      description: ""
+      sortKey: -1789886439593
+    method: GET
+    body:
+      mimeType: text/plain
+      text: |
+        INSERT INTO SOCIAL_USER (ID) VALUES (1);
+        INSERT INTO SOCIAL_USER (ID) VALUES (2);
+        INSERT INTO SOCIAL_USER (ID) VALUES (3);
+
+        INSERT INTO SOCIAL_PROFILE (ID, SOCIAL_USER) VALUES (1, 1);
+        INSERT INTO SOCIAL_PROFILE (ID, SOCIAL_USER) VALUES (2, 2);
+        INSERT INTO SOCIAL_PROFILE (ID, SOCIAL_USER) VALUES (3, 3);
+
+        INSERT INTO SOCIAL_GROUP (ID) VALUES (1);
+        INSERT INTO SOCIAL_GROUP (ID) VALUES (2);
+        INSERT INTO SOCIAL_GROUP (ID) VALUES (3);
+
+        INSERT INTO POST (ID, USER_ID) VALUES (1, 1);
+        INSERT INTO POST (ID, USER_ID) VALUES (2, 1);
+        INSERT INTO POST (ID, USER_ID) VALUES (3, 2);
+        INSERT INTO POST (ID, USER_ID) VALUES (4, 3);
+        INSERT INTO POST (ID, USER_ID) VALUES (5, 3);
+
+        INSERT INTO USER_GROUP (USER_ID, GROUP_ID) VALUES (1, 1);
+        INSERT INTO USER_GROUP (USER_ID, GROUP_ID) VALUES (1, 2);
+
+        INSERT INTO USER_GROUP (USER_ID, GROUP_ID) VALUES (2, 1);
+        INSERT INTO USER_GROUP (USER_ID, GROUP_ID) VALUES (2, 3);
+
+        INSERT INTO USER_GROUP (USER_ID, GROUP_ID) VALUES (3, 2);
+        INSERT INTO USER_GROUP (USER_ID, GROUP_ID) VALUES (3, 3);
+    headers:
+      - name: Content-Type
+        value: text/plain
+    settings:
+      renderRequestBody: true
+      encodeUrl: true
+      followRedirects: global
+      cookies:
+        send: true
+        store: true
+      rebuildPath: true
+  - url: "{{baseurl}}/socialusers"
+    name: GetAllSocialUsers
+    meta:
+      id: req_991934e57a844e2b93865bb732a2bc65
+      created: 1790063558413
+      modified: 1790095089363
+      isPrivate: false
+      description: ""
+      sortKey: -1790063558413
+    method: GET
+    settings:
+      renderRequestBody: true
+      encodeUrl: true
+      followRedirects: global
+      cookies:
+        send: true
+        store: true
+      rebuildPath: true
+  - url: "{{baseurl}}/socialusers/add"
+    name: AddSocialUser
+    meta:
+      id: req_e3c363859ce4476397ebedbadb182fa3
+      created: 1790083265792
+      modified: 1790267497985
+      isPrivate: false
+      description: ""
+      sortKey: -1790083265792
+    method: POST
+    body:
+      mimeType: application/json
+      text: |-
+        {
+        	"socialProfile": {
+        		"description": "Test"
+        	}
+        }
+    headers:
+      - name: Content-Type
+        value: application/json
+    settings:
+      renderRequestBody: true
+      encodeUrl: true
+      followRedirects: global
+      cookies:
+        send: true
+        store: true
+      rebuildPath: true
+  - url: "{{baseurl}}/socialusers/1"
+    name: New Request
+    meta:
+      id: req_2ef53974eb0743efa4196c6c9538ff2c
+      created: 1790095090266
+      modified: 1790095104705
+      isPrivate: false
+      description: ""
+      sortKey: -1790095090266
+    method: DELETE
+    settings:
+      renderRequestBody: true
+      encodeUrl: true
+      followRedirects: global
+      cookies:
+        send: true
+        store: true
+      rebuildPath: true
+cookieJar:
+  name: Default Jar
+  meta:
+    id: jar_1831aec5c83c7db2f7f9eee2e64fdf3410c606f5
+    created: 1789886392875
+    modified: 1789886392875
+environments:
+  name: Base Environment
+  meta:
+    id: env_1831aec5c83c7db2f7f9eee2e64fdf3410c606f5
+    created: 1789886392870
+    modified: 1789886432948
+    isPrivate: false
+  data:
+    baseurl: http://localhost:8080
