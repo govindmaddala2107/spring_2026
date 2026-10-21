@@ -2,23 +2,17 @@ package com.gomad.complete_tutorial.security.services;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.gomad.complete_tutorial.models.User;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Size;
-import lombok.AllArgsConstructor;
-import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.jspecify.annotations.Nullable;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-@Data
 @NoArgsConstructor
 public class UserDetailsImpl implements UserDetails {
 
@@ -46,13 +40,13 @@ public class UserDetailsImpl implements UserDetails {
     public static UserDetailsImpl build(User user) {
 
         List<GrantedAuthority> authorities = user.getRoles()
-                .stream().map(role -> new SimpleGrantedAuthority(role.getRoleName().name())).collect(Collectors.toList());
-        return new  UserDetailsImpl(
+                .stream().map(role -> new SimpleGrantedAuthority(role.getRoleName().name()))
+                .collect(Collectors.toList());
+        return new UserDetailsImpl(
                 user.getUserId(),
                 user.getUserName(),
                 user.getPassword(),
-                authorities
-        );
+                authorities);
     }
 
     @Override
@@ -92,8 +86,10 @@ public class UserDetailsImpl implements UserDetails {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o)
+            return true;
+        if (o == null || getClass() != o.getClass())
+            return false;
         UserDetailsImpl user = (UserDetailsImpl) o;
         return Objects.equals(id, user.id);
     }

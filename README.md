@@ -1439,6 +1439,206 @@
     }
     ```
 
+#### Deep Dive: Spring Data JPA Derived Queries
+
+Spring Data JPA provides a powerful **query derivation mechanism** that automatically interprets repository method signatures and translates them into highly optimized **Java Persistence Query Language (JPQL)** or SQL statements. By adhering to strict naming conventions, developers can eliminate boilerplate data access layers.
+
+---
+
+##### 1. Core Mechanics: How Parsers Build ASTs
+
+The query derivation engine splits method names into two primary components:
+1. **The Subject:** Determines the action (e.g., `find`, `count`, `delete`) and modifications (e.g., `Distinct`, `First5`).
+2. **The Predicate:** Dictates the filtering criteria (the `WHERE` clause) mapped directly to entity properties.
+
+When a repository is bootstrapped, Spring Data JPA scans the method signatures and constructs an **Abstract Syntax Tree (AST)**. Property expressions are validated against the target domain entity. If a property or keyword is mismatched, the application context fails fast at startup with a `PropertyReferenceException`.
+
+---
+
+##### 2. Comprehensive Reference Cheat Sheet
+
+The table below outlines the core predicate keywords, expressions, and their corresponding JPQL/SQL translations mapping directly to the `User` entity properties.
+
+| Keyword Category | Method Naming Pattern Example | Resulting JPQL/SQL `WHERE` Clause Snippet |
+| :--- | :--- | :--- |
+| **Logical Operators** | `findByUsernameAndEmail` | `where u.username = ?1 and u.email = ?2` |
+| | `findByAgeOrAddress` | `where u.age = ?1 or u.address = ?2` |
+| **Equality & Inequality** | `findByUsername` (or `findByUsernameIs`) | `where u.username = ?1` |
+| | `findByUsernameNot` | `where u.username <> ?1` |
+| **Null Verification** | `findByPasswordIsNull` | `where u.password is null` |
+| | `findByPasswordIsNotNull` | `where u.password is not null` |
+| **String Matchers** | `findByUsernameStartingWith` | `where u.username like ?1` (val + `%`) |
+| | `findByUsernameEndingWith` | `where u.username like ?1` (`%` + val) |
+| | `findByUsernameContaining` | `where u.username like ?1` (`%` + val + `%`) |
+| | `findByUsernameLike` | `where u.username like ?1` (requires explicit wildcards) |
+| **Case Sensitivity** | `findByUsernameIgnoreCase` | `where lower(u.username) = lower(?1)` |
+| **Numeric & Date Bounds**| `findByAgeLessThan` | `where u.age < ?1` |
+| | `findByAgeLessThanEqual` | `where u.age <= ?1` |
+| | `findByAgeGreaterThan` | `where u.age > ?1` |
+| | `findByAgeGreaterThanEqual`| `where u.age >= ?1` |
+| | `findByDobBefore` | `where u.dob < ?1` |
+| | `findByDobAfter` | `where u.dob > ?1` |
+| | `findByAgeBetween` | `where u.age between ?1 and ?2` |
+| **Collections / Iterables**| `findByAgeIn(Collection<Integer> ages)` | `where u.age in (?1)` |
+| | `findByAgeNotIn(Collection<Integer> ages)`| `where u.age not in (?1)` |
+| **Booleans** | `findByActiveTrue` | `where u.active = true` (If property exists) |
+
+---
+
+##### 3. Concrete Domain Model Mapping
+
+Here is the structured structural mapping based on your `User` domain model:
+
+```java
+package com.example.domain;
+
+import jakarta.persistence.*;
+import java.time.LocalDateTime;
+
+@Entity
+@Table(name = "users")
+public class User {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+    
+    private String username;
+    private String password;
+    private String email;
+
+    @Column(name = "mobile_number")
+    private Long mobileNumber;
+
+    private String address;
+    private int age;
+    private LocalDateTime dob;
+
+    // Getters, Setters, and Constructors omitted for clarity
+}
+```
+
+---
+
+##### 4. Production-Ready Repository Implementation
+
+The following interface demonstrates advanced query combinations, static sorting, dynamic paging, state checks, counting, and atomic delete actions against the `User` architecture:
+
+```java
+package com.example.repository;
+
+import com.example.domain.User;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDateTime;
+import java.util.Collection;
+import java.util.List;
+import java.util.Optional;
+
+@Repository
+public interface UserRepository extends JpaRepository<User, Long> {
+
+    // ==========================================
+    // 1. STANDARD READ & LOGICAL COMBINATIONS
+    // ==========================================
+
+    /**
+     * Finds a single user matching both unique identity constraints exactly.
+     */
+    Optional<User> findByUsernameAndEmail(String username, String email);
+
+    /**
+     * Fetches all users located at a specific address or belonging to a certain age group.
+     */
+    List<User> findByAddressOrAge(String address, int age);
+
+    // ==========================================
+    // 2. STRING MATCHING & CASE INSENSITIVITY
+    // ==========================================
+
+    /**
+     * Resolves partial matches inside usernames (case-insensitive) for search parameters.
+     */
+    List<User> findByUsernameContainingIgnoreCase(String partialUsername);
+
+    /**
+     * Identifies specific domain registrations by tailing email patterns.
+     */
+    List<User> findByEmailEndingWith(String domain);
+
+    // ==========================================
+    // 3. NUMERIC & TEMPORAL COMPARISONS
+    // ==========================================
+
+    /**
+     * Finds records where the age falls strictly within an inclusive bracket.
+     */
+    List<User> findByAgeBetween(int startAge, int endAge);
+
+    /**
+     * Resolves all users born after a specific target timestamp.
+     */
+    List<User> findByDobAfter(LocalDateTime registrationCutoff);
+
+    /**
+     * Fetches all users matching a discrete batch of age filters.
+     */
+    List<User> findByAgeIn(Collection<Integer> ages);
+
+    // ==========================================
+    // 4. LIMITING, SORTING, AND PAGINATION
+    // ==========================================
+
+    /**
+     * Retains only the first 5 records matching a target address, ordered by age ascending.
+     */
+    List<User> findFirst5ByAddressOrderByAgeAsc(String address);
+
+    /**
+     * Dynamically sorts users matching a specific address based on a runtime Sort definition.
+     */
+    List<User> findByAddress(String address, Sort sort);
+
+    /**
+     * Fully multi-threaded scalable slicing. Provides count queries alongside segmented payloads.
+     */
+    Page<User> findByAgeGreaterThan(int ageLimit, Pageable pageable);
+
+    // ==========================================
+    // 5. EVALUATION, AGGREGATION & DATA MUTATION
+    // ==========================================
+
+    /**
+     * Fast structural presence validation avoiding massive mapping overheads.
+     */
+    boolean existsByMobileNumber(Long mobileNumber);
+
+    /**
+     * Runs an aggregate count of records matching a localized criteria block.
+     */
+    long countByAddress(String address);
+
+    /**
+     * Performs transactional data deletion based on a lifecycle point.
+     */
+    @Transactional
+    void deleteByDobBefore(LocalDateTime cutoffDate);
+}
+```
+
+---
+
+##### 5. Architectural Trade-offs & Limitations
+
+While Derived Queries require zero configuration, they come with maintenance trade-offs:
+
+1. **Maintainability Debt:** As condition flags grow, names balloon to unreadable proportions (e.g., `findFirst10ByUsernameContainingIgnoreCaseAndEmailEndingWithAndAgeGreaterThanOrderByDobDesc`). Move to explicit `@Query` or **Specifications** when predicates exceed three parameters.
+2. **Refactoring Risks:** Renaming database columns or entity parameters via standard IDE setups requires strict care. If an entity field changes, your repository query definitions must change precisely to avoid application runtime initialization crashes.
+
 ### Validations in Springboot
 - Validations are all about ensuring the data your application receives meets certain criteria before it's processed.
 - Dependency needed is **Hibernate Validator**. but in spring we can use **spring-boot-starter-validation** which can do
@@ -4622,6 +4822,74 @@
         }
     }
     ```
+
+## AuthenticationManager
+
+`AuthenticationManager` is the central Spring Security component responsible for authenticating a user's credentials. During the login process (`/auth/signin`), it validates the username and password against the configured `UserDetailsService` and `PasswordEncoder`.
+
+### Bean Configuration
+
+```java
+@Bean
+public AuthenticationManager authenticationManager(
+        AuthenticationConfiguration config)
+        throws Exception {
+    return config.getAuthenticationManager();
+}
+```
+
+### Why is this bean required?
+
+The `AuthenticationManager` bean is exposed so that it can be injected into controllers or services where manual authentication is required.
+
+Example:
+
+```java
+@Autowired
+private AuthenticationManager authenticationManager;
+```
+
+### Authentication Flow
+
+1. User submits username and password to `/auth/signin`.
+2. `AuthenticationManager` receives the credentials.
+3. Spring Security invokes `UserDetailsService.loadUserByUsername()`.
+4. User information is loaded from the database.
+5. Password is validated using the configured `PasswordEncoder` (`BCryptPasswordEncoder`).
+6. If authentication succeeds, an `Authentication` object is returned.
+7. A JWT token is generated for the authenticated user.
+8. The JWT token is sent back to the client (cookie/header).
+
+### Example Usage
+
+```java
+Authentication authentication =
+        authenticationManager.authenticate(
+                new UsernamePasswordAuthenticationToken(
+                        loginRequest.getUsername(),
+                        loginRequest.getPassword()
+                ));
+```
+
+### Purpose in JWT Authentication
+
+The `AuthenticationManager` is used only during the login process to verify user credentials. After successful login, a JWT token is generated. For subsequent requests, authentication is performed by the custom `AuthTokenFilter`, which validates the JWT and populates the `SecurityContext` without requiring the user to log in again.
+
+### Summary
+
+- Validates username and password during login.
+- Delegates authentication to `UserDetailsService` and `PasswordEncoder`.
+- Returns an authenticated `Authentication` object upon success.
+- Used only during sign-in.
+- JWT-based requests are later authenticated by `AuthTokenFilter`.
+
+
+### Actuator:
+- It provides built-in production-ready features to monitor and manage your applications.
+- Features:
+    - Built-in endpoints
+    - Ability to view real time metrics.
+    - Customizable 
 
 
 

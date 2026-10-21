@@ -1,5 +1,7 @@
 package com.gomad.h2_jpa.model;
 
+import java.time.LocalDateTime;
+
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
