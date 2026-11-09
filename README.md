@@ -4892,4 +4892,207 @@ The `AuthenticationManager` is used only during the login process to verify user
     - Customizable 
 
 
+### Logging into files:
+
+Logging is used to record important events that occur while an application is running. These logs help developers and support teams:
+
+- Monitor application behavior
+- Troubleshoot issues
+- Track errors and exceptions
+- Audit user and system activities
+- Analyze application performance
+
+#### Spring Boot Logging Architecture
+
+```text
+Application Code
+        ↓
+SLF4J (Logging Facade)
+        ↓
+Logback (Default Logging Framework)
+        ↓
+Log Outputs
+ ├─ Console
+ ├─ Log Files
+ ├─ Database
+ └─ External Monitoring Tools
+```
+
+#### Components
+
+| Component | Purpose |
+|------------|----------|
+| **SLF4J** | Provides a common logging API used by application code. |
+| **Logback** | Default logging framework in Spring Boot that processes and writes logs. |
+| **Log Output** | Destination where logs are stored or displayed. |
+
+#### Log Levels
+
+Spring Boot supports different log levels based on severity:
+
+| Level | Description |
+|---------|-------------|
+| TRACE | Detailed diagnostic information |
+| DEBUG | Debugging information |
+| INFO | General application events |
+| WARN | Potential issues that are not critical |
+| ERROR | Errors and failures |
+
+Typical production applications use:
+
+```properties
+logging.level.root=INFO
+```
+
+#### Setup for logging into files:
+- Get **logback-spring.xml** from **Google** and we can configure as per our requirement.
+- Default XML is:
+    ```xml
+    <?xml version="1.0" encoding="UTF-8"?>
+    <configuration>
+        <!-- Include Spring Boot default properties and patterns -->
+        <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
+
+        <!-- Pull properties from application.properties -->
+        <springProperty scope="context" name="APP_NAME" source="spring.application.name" defaultValue="my-app"/>
+        <property name="LOG_DIR" value="./logs"/>
+
+        <!-- Console Appender -->
+        <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+            <encoder>
+                <pattern>${CONSOLE_LOG_PATTERN}</pattern>
+            </encoder>
+        </appender>
+
+        <!-- Rolling File Appender -->
+        <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+            <file>${LOG_DIR}/${APP_NAME}.log</file>
+            <encoder>
+                <pattern>${FILE_LOG_PATTERN}</pattern>
+            </encoder>
+            <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+                <fileNamePattern>${LOG_DIR}/archived/${APP_NAME}-%d{yyyy-MM-dd}.%i.log</fileNamePattern>
+                <maxFileSize>10MB</maxFileSize>
+                <maxHistory>30</maxHistory>
+                <totalSizeCap>1GB</totalSizeCap>
+            </rollingPolicy>
+        </appender>
+
+        <!-- Local / Dev Profile -->
+        <springProfile name="default,dev">
+            <root level="INFO">
+                <appender-ref ref="CONSOLE"/>
+            </root>
+            <logger name="com.example" level="DEBUG"/>
+        </springProfile>
+
+        <!-- Production Profile -->
+        <springProfile name="prod">
+            <root level="WARN">
+                <appender-ref ref="FILE"/>
+            </root>
+            <logger name="com.example" level="INFO"/>
+        </springProfile>
+    </configuration>
+    ```
+- Our configuration is:
+    ```xml
+    <?xml version="1.0" encoding="UTF-8"?>
+    <configuration>
+
+        <!-- Log Directory -->
+        <property name="LOG_PATH" value="logs"/>
+        <property name="APP_NAME" value="eCom"/>
+    <!--    <property name="LOG_FILE" value="${LOG_PATH}/{APP_NAME}.log"/>-->
+
+        <!-- Console Appender -->
+        <appender name="CONSOLE"
+                class="ch.qos.logback.core.ConsoleAppender">
+
+            <encoder>
+                <pattern>
+                    %d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n
+                </pattern>
+            </encoder>
+
+        </appender>
+
+        <!-- Rolling File Appender -->
+        <appender name="FILE"
+                class="ch.qos.logback.core.rolling.RollingFileAppender">
+
+            ${LOG_PATH}/${APP_NAME}.log
+
+            <rollingPolicy
+                    class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+
+                <!-- Daily log file -->
+                <fileNamePattern>
+                    ${LOG_PATH}/${APP_NAME}.%d{yyyy-MM-dd}.%i.log
+                </fileNamePattern>
+
+                <!-- Max size per file -->
+                <maxFileSize>1MB</maxFileSize>
+
+                <!-- Keep logs for 30 days -->
+                <maxHistory>30</maxHistory>
+
+                <!-- Total log size -->
+                <totalSizeCap>1GB</totalSizeCap>
+
+            </rollingPolicy>
+
+            <encoder>
+                <pattern>
+                    %d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n
+                </pattern>
+            </encoder>
+
+        </appender>
+
+        <!-- Security Logs -->
+    <!--    <logger name="org.springframework.security"-->
+    <!--            level="DEBUG"/>-->
+
+        <!-- Hibernate SQL -->
+    <!--    <logger name="org.hibernate.SQL"-->
+    <!--            level="DEBUG"/>-->
+
+    <!--    <logger name="org.hibernate.orm.jdbc.bind"-->
+    <!--            level="TRACE"/>-->
+
+        <!-- Application Package -->
+    <!--    <logger name="com.gomad.ecom"-->
+    <!--            level="INFO"/>-->
+
+        <!-- Root Logger -->
+        <root level="INFO">
+
+            <appender-ref ref="CONSOLE"/>
+            <appender-ref ref="FILE"/>
+
+        </root>
+
+    </configuration>
+    ```
+- application.properties is
+    ```yaml
+    # Log file location
+    logging.file.path=logs
+
+    # Logging levels
+    #logging.level.org.springframework=INFO
+    #logging.level.org.hibernate.SQL=INFO
+    #logging.level.org.springframework.security=INFO
+    #logging.level.com.gomad.spring_security=INFO
+
+    logging.level.root=INFO
+    logging.level.com.gomad.ecom=INFO
+    logging.level.org.springframework.security=INFO
+    #logging.level.org.hibernate.SQL=INFO
+    #logging.level.org.hibernate.orm.jdbc.bind=TRACE
+
+    # Show startup banner
+    spring.main.banner-mode=console
+    ```
 
